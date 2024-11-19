@@ -11,18 +11,18 @@ onlyfiles = [f for f in listdir("/content/images/") if isfile(join("/content/ima
 
 
 def bounded_slice(arr, cx, cy, w, h):
-    large_tiled_array = np.tile(arr, (3, 3, 1)) 
-    start_x = cx % arr.shape[1] 
+    large_tiled_array = np.tile(arr, (3, 3, 1))
+    start_x = cx % arr.shape[1]
     start_y = cy % arr.shape[0]
     return large_tiled_array[start_y:start_y+h, start_x:start_x+w]
 
-def clamped_slice(arr, cx, cy, w, h): 
-    max_h, max_w = arr.shape[:2] 
-    result = np.zeros((h, w, *arr.shape[2:]), dtype=arr.dtype) 
-    for i in range(h): 
-        for j in range(w): 
-            y = np.clip(cy + i, 0, max_h - 1) 
-            x = np.clip(cx + j, 0, max_w - 1) 
+def clamped_slice(arr, cx, cy, w, h):
+    max_h, max_w = arr.shape[:2]
+    result = np.zeros((h, w, *arr.shape[2:]), dtype=arr.dtype)
+    for i in range(h):
+        for j in range(w):
+            y = np.clip(cy + i, 0, max_h - 1)
+            x = np.clip(cx + j, 0, max_w - 1)
             result[i, j] = arr[y, x]
     return result
 
@@ -31,7 +31,7 @@ def blend_images(image1, image2):
     R2, G2, B2, A2 = image2[:,:,0], image2[:,:,1], image2[:,:,2], image2[:,:,3] / 255.0
 
     A_result = A2 + A1 * (1 - A2)
-    R_result = np.where(A_result > 0, (R2 * A2 + R1 * A1 * (1 - A2)) / A_result, R1) 
+    R_result = np.where(A_result > 0, (R2 * A2 + R1 * A1 * (1 - A2)) / A_result, R1)
     G_result = np.where(A_result > 0, (G2 * A2 + G1 * A1 * (1 - A2)) / A_result, G1)
     B_result = np.where(A_result > 0, (B2 * A2 + B1 * A1 * (1 - A2)) / A_result, B1)
 
@@ -65,11 +65,10 @@ class Letter:
         draw.text((0, 0), self.letter, font=self.font.font, fill=(255,255,255,255))
         img_np = np.array(img)
 
-        cx,cy = 0,0   # focus point of the slice
-        back_img = Image.open("/content/images/"+onlyfiles[self.imgi],'r')
+        cx,cy = 100,100   # focus point of the slice
+        back_img = Image.open("/content/images/"+onlyfiles[self.imgi % len(onlyfiles)],'r')
         back_img = back_img.convert('RGBA')
         back_img_np = np.array(back_img)
-        back_img_np = cv2.resize(back_img_np,(w,h))
 
         back_img_np = clamped_slice(back_img_np,cx,cy,w,h)
 
