@@ -8,6 +8,7 @@ const fileBlob = ref(null); // Store the image as a Blob (either from upload or 
 const blurredImage = ref(null); // Stores the blurred image from the backend
 const isLoading = ref(false);  // Boolean to show a loading spinner while the image is being processed
 const displayedImage = ref(null); // Handles the image currently displayed (original/blurred)
+const text = ref(null);
 
 // Watch for changes in the selected image from the gallery
 watch(
@@ -77,6 +78,19 @@ const resetImage = () => {
   displayedImage.value = null;
   document.querySelector('input[type="file"]').value = '';
 };
+
+const submitText = async () => {
+  console.log(text.valueOf().value)
+  const response = await axios.post(`${store.apiUrl}/submit-text`, text.valueOf().value, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    responseType: 'blob'  // Expect binary data (blob)
+  });
+  blurredImage.value = URL.createObjectURL(response.data);
+  displayedImage.value = blurredImage.value;
+  console.log("test");
+}
 </script>
 
 <template>
@@ -86,9 +100,11 @@ const resetImage = () => {
     <v-card elevation="2" class="pa-4 card-container">
       <!-- Card title -->
       <v-card-title class="justify-center">
-        <h2>Image Blur</h2>
+        <h2>Artistic Cover Letter</h2>
       </v-card-title>
       <!-- Card content -->
+      <v-text-field v-model="text" label="Enter your text" prepend-icon="mdi-format-text" ></v-text-field>
+      <v-btn color="primary" @click="submitText">Submit</v-btn>
       <v-card-text>
         <!-- Row for image upload and button -->
         <v-row align="center">
