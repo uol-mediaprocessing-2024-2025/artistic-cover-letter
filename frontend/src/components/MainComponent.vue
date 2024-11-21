@@ -9,6 +9,7 @@ const blurredImage = ref(null); // Stores the blurred image from the backend
 const isLoading = ref(false);  // Boolean to show a loading spinner while the image is being processed
 const displayedImage = ref(null); // Handles the image currently displayed (original/blurred)
 const text = ref(null);
+const errorMessage = ref(null);
 
 // Watch for changes in the selected image from the gallery
 watch(
@@ -90,7 +91,9 @@ const submitText = async () => {
   });
   blurredImage.value = URL.createObjectURL(response.data);
   displayedImage.value = blurredImage.value;
+  errorMessage.value = null;
   } catch (error) {
+    errorMessage.value = "Internal server error.";
     console.error('Failure:', error);
   } finally {
     isLoading.value = false;
@@ -108,48 +111,22 @@ const submitText = async () => {
         <h2>Artistic Cover Letter</h2>
       </v-card-title>
       <!-- Card content -->
-      <v-text-field v-model="text" label="Enter your text" prepend-icon="mdi-format-text" ></v-text-field>
-      <v-btn color="primary" @click="submitText">Submit</v-btn>
+      <v-text-field v-model="text" label="Enter your text" prepend-icon="mdi-format-text" @keyup.enter="submitText" :disabled="isLoading"></v-text-field>
       <v-card-text>
-        <!-- Row for image upload and button -->
-        <v-row align="center">
-          <!-- Image upload field (clickable image area) -->
-          <v-col cols="12" md="8">
             <!-- Wrapper div for positioning the loading overlay -->
             <div class="image-wrapper">
-              <v-responsive @click="openFileDialog" class="image-placeholder">
-                <!-- Display current image (original or blurred) or placeholder -->
-                <v-img v-if="displayedImage" :src="displayedImage" max-height="300" contain @click.stop="toggleImage"
+              <v-img v-if="displayedImage" :src="displayedImage" max-height="300" contain @click.stop="toggleImage"
                   :class="{ 'clickable': blurredImage && !isLoading }">
-                  <!-- "X" button to reset the image -->
-                  <v-btn v-if="displayedImage" icon density="compact" class="reset-btn ma-2" @click="resetImage"
-                    color="red">
-                    <v-icon small>mdi-close</v-icon>
-                  </v-btn>
                 </v-img>
-                <div class="d-flex align-center justify-center" v-else>Click to upload an image</div>
-              </v-responsive>
+                <div class="d-flex align-center justify-center" v-else></div>
               <!-- Loading overlay with centered spinner -->
               <div v-if="isLoading" class="loading-overlay">
                 <v-progress-circular indeterminate color="primary" size="50"></v-progress-circular>
               </div>
             </div>
-          </v-col>
-          <!-- Apply Blur Button with Icon -->
-          <v-col cols="12" md="3" class="text-center">
-            <v-btn color="primary" @click="applyBlur" :disabled="!fileBlob || isLoading" block>
-              <v-icon left>mdi-upload</v-icon>
-              Apply Blur
-            </v-btn>
-            <div v-if="blurredImage && !isLoading" class="mt-2 text-caption">
-              Click the image to toggle between original and blurred versions
-            </div>
-          </v-col>
-        </v-row>
-        <!-- File input field (hidden) -->
-        <v-file-input label="Upload an Image" @change="handleImageUpload" accept="image/*" class="d-none"
-          prepend-icon="mdi-upload"></v-file-input>
+
       </v-card-text>
+      <v-alert v-if="errorMessage && !isLoading" type="error"> {{ errorMessage }} </v-alert>
     </v-card>
   </v-container>
 </template>
