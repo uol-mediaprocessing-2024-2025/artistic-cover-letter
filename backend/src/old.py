@@ -16,15 +16,20 @@ def bounded_slice(arr, cx, cy, w, h):
     start_y = cy % arr.shape[0]
     return large_tiled_array[start_y:start_y+h, start_x:start_x+w]
 
+# replaced by faster algorithm. Source: Bing AI
 def clamped_slice(arr, cx, cy, w, h):
     max_h, max_w = arr.shape[:2]
-    result = np.zeros((h, w, *arr.shape[2:]), dtype=arr.dtype)
-    for i in range(h):
-        for j in range(w):
-            y = np.clip(cy + i, 0, max_h - 1)
-            x = np.clip(cx + j, 0, max_w - 1)
-            result[i, j] = arr[y, x]
+    # Create an array of coordinates
+    y_indices = np.clip(np.arange(cy, cy + h), 0, max_h - 1)
+    x_indices = np.clip(np.arange(cx, cx + w), 0, max_w - 1)
+
+    # Use meshgrid to create a grid of coordinates
+    y_grid, x_grid = np.meshgrid(y_indices, x_indices, indexing='ij')
+
+    # Use the grid to index into the array
+    result = arr[y_grid, x_grid]
     return result
+
 
 def blend_images(image1, image2):
     R1, G1, B1, A1 = image1[:,:,0], image1[:,:,1], image1[:,:,2], image1[:,:,3] / 255.0
@@ -71,7 +76,6 @@ class Letter:
         back_img_np = np.array(back_img)
 
         back_img_np = clamped_slice(back_img_np,cx,cy,w,h)
-
         # apply alpha
         for r in range(back_img_np.shape[0]):
             for c in range(back_img_np.shape[1]):
@@ -108,7 +112,6 @@ class LetterText:
             letter_w = letter_img.shape[1]
             img[letter.y:letter.y + h, current_x:current_x + letter_w] = letter_img
             current_x += letter_w # Update x for the next letter
-
         return img
 
 

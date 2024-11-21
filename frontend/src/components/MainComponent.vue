@@ -10,7 +10,8 @@ const isLoading = ref(false);  // Boolean to show a loading spinner while the im
 const displayedImage = ref(null); // Handles the image currently displayed (original/blurred)
 const text = ref(null);
 const errorMessage = ref(null);
-const dropshadowslider = ref(0)
+const dropshadowintensity = ref(0);
+const dropshadowradius = ref(0);
 
 // Watch for changes in the selected image from the gallery
 watch(
@@ -135,24 +136,25 @@ const submitText = async () => {
       <v-card-title>
         <h2>Settings (not functional)</h2>
       </v-card-title>
-      <!-- slider from vuetify website -->
-      <v-slider
-        v-model="dropshadowslider"
-        label="Dropshadow"
-        :max=100
-        :min=0
-      >
-        <template v-slot:append>
-          <v-text-field
-            v-model="dropshadowslider"
-            density="compact"
-            style="width: 100px"
-            type="number"
-            hide-details
-            single-line
-          ></v-text-field>
-        </template>
-      </v-slider>
+
+      <v-expansion-panels>
+        <v-expansion-panel title="Dropshadow">
+          <v-expansion-panel-text>
+            <v-slider v-model="dropshadowintensity" label="Intensity" :max=100 :min=0>
+              <template v-slot:append>
+                <v-text-field v-model="dropshadowintensity" density="compact" style="width: 100px" type="number" hide-details single-line
+                ></v-text-field>
+              </template>
+            </v-slider>
+            <v-slider v-model="dropshadowradius" label="Radius" :max=100 :min=0>
+              <template v-slot:append>
+                <v-text-field v-model="dropshadowradius" density="compact" style="width: 100px" type="number" hide-details single-line
+                ></v-text-field>
+              </template>
+            </v-slider>
+          </v-expansion-panel-text>
+        </v-expansion-panel>
+      </v-expansion-panels>
     </v-card>
   </v-container>
 </template>
