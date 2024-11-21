@@ -2,6 +2,7 @@ from fastapi import FastAPI, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 from image_processing import process_image_blur
+from PIL import Image, ImageFilter
 import io
 import uvicorn
 import cv2
@@ -79,10 +80,7 @@ async def submit_text(request: Request):
     final_img = blend_images(img_blurred,img_black_trans)
     final_img = blend_images(final_img,img)
 
-    img = final_img
-
-    imgplot = plt.imshow(final_img)
-    plt.show()
+    img = Image.fromarray(final_img)
 
     image_io = io.BytesIO()
     img.save(image_io, format="PNG")

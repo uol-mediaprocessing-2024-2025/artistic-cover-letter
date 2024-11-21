@@ -81,6 +81,7 @@ const resetImage = () => {
 
 const submitText = async () => {
   console.log(text.valueOf().value)
+  isLoading.value = true;
   const response = await axios.post(`${store.apiUrl}/submit-text`, text.valueOf().value, {
     headers: {
       'Content-Type': 'application/json',
@@ -89,7 +90,7 @@ const submitText = async () => {
   });
   blurredImage.value = URL.createObjectURL(response.data);
   displayedImage.value = blurredImage.value;
-  console.log("test");
+  isLoading.value = false;
 }
 </script>
 
