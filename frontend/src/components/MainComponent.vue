@@ -10,6 +10,7 @@ const isLoading = ref(false);  // Boolean to show a loading spinner while the im
 const displayedImage = ref(null); // Handles the image currently displayed (original/blurred)
 const text = ref(null);
 const errorMessage = ref(null);
+const resolution = ref("200");
 const dropshadowintensity = ref(0);
 const dropshadowradius = ref(0);
 
@@ -84,6 +85,7 @@ const resetImage = () => {
 
 const submitText = async () => {
   isLoading.value = true;
+  errorMessage.value = null;
   try {
   const response = await axios.post(`${store.apiUrl}/submit-text`, text.valueOf().value, {
     headers: {
@@ -93,7 +95,6 @@ const submitText = async () => {
   });
   blurredImage.value = URL.createObjectURL(response.data);
   displayedImage.value = blurredImage.value;
-  errorMessage.value = null;
   } catch (error) {
     errorMessage.value = "Internal server error.";
     console.error('Failure:', error);
@@ -101,6 +102,50 @@ const submitText = async () => {
     isLoading.value = false;
   }
 }
+
+const changeDropshadow = async () => {
+  if (resolution.valueOf().value > 200){
+    isLoading.value = true;
+  }
+  errorMessage.value = null;
+  try {
+    const response = await axios.post(`${store.apiUrl}/dropshadow`, {
+      text: text.valueOf().value,
+      radius: dropshadowradius.valueOf().value,
+      intensity: dropshadowintensity.valueOf().value,
+      resolution: resolution.valueOf().value
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      responseType: 'blob'  // Expect binary data (blob)
+    });
+
+    blurredImage.value = URL.createObjectURL(response.data);
+    displayedImage.value = blurredImage.value;
+  }
+  catch (error) {
+    errorMessage.value = "Internal server error.";
+    console.error("Failure:", error);
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+</script>
+
+<script>
+  export default {
+    data () {
+      return {
+        tickLabels: {
+          200: 'Low Quality',
+          400: 'Standard Quality',
+          600: 'High Quality',
+        },
+      }
+    },
+  }
 </script>
 
 <template>
@@ -133,28 +178,34 @@ const submitText = async () => {
 
     <!-- SETTINGS -->
     <v-card elevation="2" class="pa-4 card-container">
-      <v-card-title>
-        <h2>Settings (not functional)</h2>
-      </v-card-title>
-
+<v-card-title class="d-flex align-center">
+  <v-icon class="mr-2">mdi-creation</v-icon>
+  <h2>Effects</h2>
+</v-card-title>
       <v-expansion-panels>
         <v-expansion-panel title="Dropshadow">
           <v-expansion-panel-text>
-            <v-slider v-model="dropshadowintensity" label="Intensity" :max=100 :min=0>
+            <v-slider v-model="dropshadowintensity" label="Intensity" :step="1" :max=100 :min=0 @end="changeDropshadow" :disabled="isLoading">
               <template v-slot:append>
-                <v-text-field v-model="dropshadowintensity" density="compact" style="width: 100px" type="number" hide-details single-line
+                <v-text-field v-model="dropshadowintensity" density="compact" style="width: 100px" type="number" hide-details single-line @change="changeDropshadow" :disabled="isLoading"
                 ></v-text-field>
               </template>
             </v-slider>
-            <v-slider v-model="dropshadowradius" label="Radius" :max=100 :min=0>
+            <v-slider v-model="dropshadowradius" label="Radius" :step="1" :max=30 :min=1 @end="changeDropshadow" :disabled="isLoading">
               <template v-slot:append>
-                <v-text-field v-model="dropshadowradius" density="compact" style="width: 100px" type="number" hide-details single-line
+                <v-text-field v-model="dropshadowradius" density="compact" style="width: 100px" type="number" hide-details single-line @change="changeDropshadow" :disabled="isLoading"
                 ></v-text-field>
               </template>
             </v-slider>
           </v-expansion-panel-text>
         </v-expansion-panel>
       </v-expansion-panels>
+      <v-slider :min="200" :max="600" v-model="resolution" :ticks="tickLabels" show-ticks="always" step="200" tick-size="4" @end="changeDropshadow" :disabled="disableControls">
+        <template v-slot:append>
+          <v-text-field v-model="resolution" density="compact" style="width: 100px" type="number" hide-details single-line @change="changeDropshadow" :disabled="disableControls"
+          ></v-text-field>
+        </template>
+      </v-slider>
     </v-card>
   </v-container>
 </template>
