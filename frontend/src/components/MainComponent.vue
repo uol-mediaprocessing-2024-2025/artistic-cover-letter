@@ -1,7 +1,7 @@
 <script setup>
-import { ref, watch } from 'vue';
+import {ref, watch} from 'vue';
 import axios from 'axios';
-import { store } from '../store'; // Import shared store to manage global state
+import {store} from '../store'; // Import shared store to manage global state
 
 // Reactive references
 const fileBlob = ref(null); // Store the image as a Blob (either from upload or gallery)
@@ -13,6 +13,15 @@ const errorMessage = ref(null);
 const resolution = ref("200");
 const dropshadowintensity = ref(0);
 const dropshadowradius = ref(0);
+
+const fullImage = ref(null); //
+const maskImage = ref(null); //
+const layer_0 = ref(null); //
+const layer_1 = ref(null); //
+const layer_2 = ref(null); //
+const layer_3 = ref(null); //
+const layer_4 = ref(null); //
+
 
 // Watch for changes in the selected image from the gallery
 watch(
@@ -87,14 +96,14 @@ const submitText = async () => {
   isLoading.value = true;
   errorMessage.value = null;
   try {
-  const response = await axios.post(`${store.apiUrl}/submit-text`, text.valueOf().value, {
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    responseType: 'blob'  // Expect binary data (blob)
-  });
-  blurredImage.value = URL.createObjectURL(response.data);
-  displayedImage.value = blurredImage.value;
+    const formData = new FormData();
+    formData.append('text', text.valueOf().value);
+    formData.append('resolution', resolution.valueOf().value);
+    formData.append('dropshadow_radius', dropshadowradius.valueOf().value);
+    formData.append('dropshadow_intensity', dropshadowintensity.valueOf().value);
+    const response = await axios.post(`${store.apiUrl}/submit-text`, formData, {});
+  const imageArray = response.data;
+  updateImages(imageArray);
   } catch (error) {
     errorMessage.value = "Internal server error.";
     console.error('Failure:', error);
@@ -103,26 +112,47 @@ const submitText = async () => {
   }
 }
 
+const updateImages = (imageArray) => {
+  const blobArray = [];
+  imageArray.forEach((base64Image, index) => {
+      const binary = atob(base64Image);
+      const array = [];
+      for (let i = 0; i < binary.length; i++) {
+        array.push(binary.charCodeAt(i));
+      }
+      const blob = new Blob([new Uint8Array(array)], { type: 'image/png' });
+      blobArray[index] = URL.createObjectURL(blob);
+    });
+  fullImage.value = blobArray[0];
+  maskImage.value = blobArray[1];
+  layer_0.value = blobArray[2];
+  layer_1.value = blobArray[3];
+  layer_2.value = blobArray[4];
+  layer_3.value = blobArray[5];
+  layer_4.value = blobArray[6];
+}
+
 const changeDropshadow = async () => {
   if (resolution.valueOf().value > 200){
     isLoading.value = true;
   }
   errorMessage.value = null;
   try {
-    const response = await axios.post(`${store.apiUrl}/dropshadow`, {
-      text: text.valueOf().value,
-      radius: dropshadowradius.valueOf().value,
-      intensity: dropshadowintensity.valueOf().value,
-      resolution: resolution.valueOf().value
-    }, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      responseType: 'blob'  // Expect binary data (blob)
-    });
+    const formData = new FormData();
+    formData.append('radius', dropshadowradius.valueOf().value);
+    formData.append('intensity', dropshadowintensity.valueOf().value);
+    formData.append('resolution', resolution.valueOf().value);
+    // Convert Images to blobs
+    formData.append('mask_blob', await fetch(maskImage.value).then(res => res.blob()));
+    formData.append('layer0_blob', await fetch(layer_0.value).then(res => res.blob()));
+    formData.append('layer1_blob', await fetch(layer_1.value).then(res => res.blob()));
+    formData.append('layer2_blob', await fetch(layer_2.value).then(res => res.blob()));
+    formData.append('layer3_blob', await fetch(layer_3.value).then(res => res.blob()));
+    formData.append('layer4_blob', await fetch(layer_4.value).then(res => res.blob()));
 
-    blurredImage.value = URL.createObjectURL(response.data);
-    displayedImage.value = blurredImage.value;
+    const response = await axios.post(`${store.apiUrl}/dropshadow`, formData, {});
+    const imageArray = response.data;
+    updateImages(imageArray);
   }
   catch (error) {
     errorMessage.value = "Internal server error.";
@@ -131,7 +161,6 @@ const changeDropshadow = async () => {
     isLoading.value = false;
   }
 }
-
 </script>
 
 <script>
@@ -162,10 +191,23 @@ const changeDropshadow = async () => {
       <v-card-text>
             <!-- Wrapper div for positioning the loading overlay -->
             <div class="image-wrapper">
-              <v-img v-if="displayedImage" :src="displayedImage" max-height="300" contain @click.stop="toggleImage"
-                  :class="{ 'clickable': blurredImage && !isLoading }">
+              full image:
+              <v-img v-if="fullImage" :src="fullImage" max-height="300" contain @click.stop="toggleImage"
+                     :class="{ 'clickable': blurredImage && !isLoading }">
                 </v-img>
                 <div class="d-flex align-center justify-center" v-else></div>
+              mask image:
+              <v-img v-if="maskImage" :src="maskImage" max-height="150"></v-img>
+              layer0:
+              <v-img v-if="layer_0" :src="layer_0" max-height="150"></v-img>
+              layer1:
+              <v-img v-if="layer_1" :src="layer_1" max-height="150"></v-img>
+              layer2:
+              <v-img v-if="layer_2" :src="layer_2" max-height="150"></v-img>
+              layer3:
+              <v-img v-if="layer_3" :src="layer_3" max-height="150"></v-img>
+              layer4:
+              <v-img v-if="layer_4" :src="layer_4" max-height="150"></v-img>
               <!-- Loading overlay with centered spinner -->
               <div v-if="isLoading" class="loading-overlay">
                 <v-progress-circular indeterminate color="primary" size="50"></v-progress-circular>
@@ -200,9 +242,9 @@ const changeDropshadow = async () => {
           </v-expansion-panel-text>
         </v-expansion-panel>
       </v-expansion-panels>
-      <v-slider :min="200" :max="600" v-model="resolution" :ticks="tickLabels" show-ticks="always" step="200" tick-size="4" @end="changeDropshadow" :disabled="disableControls">
+      <v-slider :min="200" :max="600" v-model="resolution" :ticks="tickLabels" show-ticks="always" step="200" tick-size="4" @end="submitText" :disabled="disableControls">
         <template v-slot:append>
-          <v-text-field v-model="resolution" density="compact" style="width: 100px" type="number" hide-details single-line @change="changeDropshadow" :disabled="disableControls"
+          <v-text-field v-model="resolution" density="compact" style="width: 100px" type="number" hide-details single-line @change="submitText" :disabled="disableControls"
           ></v-text-field>
         </template>
       </v-slider>
