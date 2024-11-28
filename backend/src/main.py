@@ -67,11 +67,13 @@ async def submit_text(
     maskArray[:, :, 1] = 0
     maskArray[:, :, 2] = 0
 
-    layer0 = mask
     layer1 = calcDropshadow(mask, dropshadow_radius, dropshadow_intensity, resolution)
     layer2 = Image.fromarray(maskArray)
     layer3 = empty
     layer4 = empty
+
+    layer0 = calcBackgroundBleed(layer2, 25, 10, resolution)
+
     full = fullComposite(layer0, layer1, layer2, layer3, layer4)
 
     return JSONResponse(content=[
@@ -115,6 +117,13 @@ def calcDropshadow(mask_image, radius, intensity, resolution):
         return dropshadow
     else:
         return Image.new('RGBA', mask_image.size, (0, 0, 0, 0))
+
+def calcBackgroundBleed(layer2, radius, intensity, resolution):
+    layer2_np = np.array(layer2)
+    blurred = cv2.GaussianBlur(layer2_np, (int(0.02*resolution*radius + 1), int(0.02*resolution*radius + 1)), 0)
+    blurredImage = Image.fromarray(blurred)
+    blurredImage = alpha_composite(blurredImage, blurredImage)
+    return blurredImage
 
 def generateText(text, resolution):
     print(f"Received text: {text}")
