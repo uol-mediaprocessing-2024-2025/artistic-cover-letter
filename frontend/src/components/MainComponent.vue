@@ -13,9 +13,10 @@ const errorMessage = ref(null);
 const resolution = ref("200");
 const dropshadowintensity = ref(0);
 const dropshadowradius = ref(0);
+const bleedintensity = ref(0);
+const bleedradius = ref(0);
 
 const fullImage = ref(null); //
-const maskImage = ref(null); //
 const layer_0 = ref(null); //
 const layer_1 = ref(null); //
 const layer_2 = ref(null); //
@@ -124,16 +125,15 @@ const updateImages = (imageArray) => {
       blobArray[index] = URL.createObjectURL(blob);
     });
   fullImage.value = blobArray[0];
-  maskImage.value = blobArray[1];
-  layer_0.value = blobArray[2];
-  layer_1.value = blobArray[3];
-  layer_2.value = blobArray[4];
-  layer_3.value = blobArray[5];
-  layer_4.value = blobArray[6];
+  layer_0.value = blobArray[1];
+  layer_1.value = blobArray[2];
+  layer_2.value = blobArray[3];
+  layer_3.value = blobArray[4];
+  layer_4.value = blobArray[5];
 }
 
 const changeDropshadow = async () => {
-  if (resolution.valueOf().value > 200){
+  if (resolution.valueOf().value > 200) {
     isLoading.value = true;
   }
   errorMessage.value = null;
@@ -143,9 +143,7 @@ const changeDropshadow = async () => {
     formData.append('intensity', dropshadowintensity.valueOf().value);
     formData.append('resolution', resolution.valueOf().value);
     // Convert Images to blobs
-    formData.append('mask_blob', await fetch(maskImage.value).then(res => res.blob()));
     formData.append('layer0_blob', await fetch(layer_0.value).then(res => res.blob()));
-    formData.append('layer1_blob', await fetch(layer_1.value).then(res => res.blob()));
     formData.append('layer2_blob', await fetch(layer_2.value).then(res => res.blob()));
     formData.append('layer3_blob', await fetch(layer_3.value).then(res => res.blob()));
     formData.append('layer4_blob', await fetch(layer_4.value).then(res => res.blob()));
@@ -153,8 +151,34 @@ const changeDropshadow = async () => {
     const response = await axios.post(`${store.apiUrl}/dropshadow`, formData, {});
     const imageArray = response.data;
     updateImages(imageArray);
+  } catch (error) {
+    errorMessage.value = "Internal server error.";
+    console.error("Failure:", error);
+  } finally {
+    isLoading.value = false;
   }
-  catch (error) {
+}
+
+const changeBackgroundBleed = async () => {
+  if (resolution.valueOf().value > 200){
+    isLoading.value = true;
+  }
+  errorMessage.value = null;
+  try {
+    const formData = new FormData();
+    formData.append('radius', bleedradius.valueOf().value);
+    formData.append('intensity', bleedintensity.valueOf().value);
+    formData.append('resolution', resolution.valueOf().value)
+    // Convert Images to blobs
+    formData.append('layer1_blob', await fetch(layer_1.value).then(res => res.blob()));
+    formData.append('layer2_blob', await fetch(layer_2.value).then(res => res.blob()));
+    formData.append('layer3_blob', await fetch(layer_3.value).then(res => res.blob()));
+    formData.append('layer4_blob', await fetch(layer_4.value).then(res => res.blob()));
+
+    const response = await axios.post(`${store.apiUrl}/background-bleed`, formData, {});
+    const imageArray = response.data;
+    updateImages(imageArray);
+  } catch (error) {
     errorMessage.value = "Internal server error.";
     console.error("Failure:", error);
   } finally {
@@ -192,22 +216,10 @@ const changeDropshadow = async () => {
             <!-- Wrapper div for positioning the loading overlay -->
             <div class="image-wrapper">
               full image:
-              <v-img v-if="fullImage" :src="fullImage" max-height="300" contain @click.stop="toggleImage"
+              <v-img v-if="fullImage" :src="fullImage" max-height="1000" contain @click.stop="toggleImage"
                      :class="{ 'clickable': blurredImage && !isLoading }">
                 </v-img>
                 <div class="d-flex align-center justify-center" v-else></div>
-              mask image:
-              <v-img v-if="maskImage" :src="maskImage" max-height="150"></v-img>
-              layer0:
-              <v-img v-if="layer_0" :src="layer_0" max-height="150"></v-img>
-              layer1:
-              <v-img v-if="layer_1" :src="layer_1" max-height="150"></v-img>
-              layer2:
-              <v-img v-if="layer_2" :src="layer_2" max-height="150"></v-img>
-              layer3:
-              <v-img v-if="layer_3" :src="layer_3" max-height="150"></v-img>
-              layer4:
-              <v-img v-if="layer_4" :src="layer_4" max-height="150"></v-img>
               <!-- Loading overlay with centered spinner -->
               <div v-if="isLoading" class="loading-overlay">
                 <v-progress-circular indeterminate color="primary" size="50"></v-progress-circular>
@@ -241,6 +253,23 @@ const changeDropshadow = async () => {
             </v-slider>
           </v-expansion-panel-text>
         </v-expansion-panel>
+
+        <v-expansion-panel title="Bleed into background">
+          <v-expansion-panel-text>
+            <v-slider v-model="bleedintensity" label="Intensity" :step="1" :max=100 :min=0 @end="changeBackgroundBleed" :disabled="isLoading">
+              <template v-slot:append>
+                <v-text-field v-model="bleedintensity" density="compact" style="width: 100px" type="number" hide-details single-line @change="changeBackgroundBleed" :disabled="isLoading"
+                ></v-text-field>
+              </template>
+            </v-slider>
+            <v-slider v-model="bleedradius" label="Radius" :step="1" :max=30 :min=1 @end="changeBackgroundBleed" :disabled="isLoading">
+              <template v-slot:append>
+                <v-text-field v-model="bleedradius" density="compact" style="width: 100px" type="number" hide-details single-line @change="changeBackgroundBleed" :disabled="isLoading"
+                ></v-text-field>
+              </template>
+            </v-slider>
+          </v-expansion-panel-text>
+        </v-expansion-panel>
       </v-expansion-panels>
       <v-slider :min="200" :max="600" v-model="resolution" :ticks="tickLabels" show-ticks="always" step="200" tick-size="4" @end="submitText" :disabled="disableControls">
         <template v-slot:append>
@@ -248,6 +277,22 @@ const changeDropshadow = async () => {
           ></v-text-field>
         </template>
       </v-slider>
+      <v-expansion-panels>
+        <v-expansion-panel title="Layers (Debug)">
+          <v-expansion-panel-text>
+              layer0:
+              <v-img v-if="layer_0" :src="layer_0" max-height="150"></v-img>
+              layer1:
+              <v-img v-if="layer_1" :src="layer_1" max-height="150"></v-img>
+              layer2:
+              <v-img v-if="layer_2" :src="layer_2" max-height="150"></v-img>
+              layer3:
+              <v-img v-if="layer_3" :src="layer_3" max-height="150"></v-img>
+              layer4:
+              <v-img v-if="layer_4" :src="layer_4" max-height="150"></v-img>
+          </v-expansion-panel-text>
+        </v-expansion-panel>
+      </v-expansion-panels>
     </v-card>
   </v-container>
 </template>
@@ -262,7 +307,7 @@ const changeDropshadow = async () => {
 }
 
 .card-container {
-  max-width: 800px;
+  max-width: 1500px;
   width: 100%;
 }
 

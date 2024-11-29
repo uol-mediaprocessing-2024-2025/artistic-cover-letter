@@ -5,8 +5,11 @@ from PIL.Image import alpha_composite
 from fastapi import FastAPI, UploadFile, File, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
-from image_processing import process_image_blur
-from PIL import Image,ImageDraw,ImageFont
+
+from backend.src.testing import load_images_from_folder
+from image_processing import process_image_blur, circular_kernel, calcDropshadow, calcBackgroundBleed
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from letter_rendering import generate_letter_layer
 import io
 import uvicorn
 import cv2
@@ -28,8 +31,107 @@ app.add_middleware(
     allow_methods=["*"],  # Allows all HTTP methods
     allow_headers=["*"],  # Allows all headers
 )
+@app.post("/submit-text")
+async def submit_text(
+        text: str = Form(...),
+        resolution: int = Form(...),
+        dropshadow_radius: int = Form(...),
+        dropshadow_intensity: int = Form(...)
+):
+    ## IMAGES ##
+
+    images = load_images_from_folder("C:/Users/Simon/Downloads/examplePhotos")
+
+    ## IMAGES ##
+
+    layer2 = generate_letter_layer(text, resolution, images)
+    layer0 = calcBackgroundBleed(layer2, 1, 1, resolution)
+    layer1 = calcDropshadow(layer2, dropshadow_radius, dropshadow_intensity, resolution)
+
+    empty = Image.new('RGBA', layer2.size, (0, 0, 0, 0))
+    layer3 = empty
+    layer4 = empty
 
 
+    full = fullComposite(layer0, layer1, layer2, layer3, layer4)
+
+    return JSONResponse(content=[
+        encodeImage(full),
+        encodeImage(layer0),
+        encodeImage(layer1),
+        encodeImage(layer2),
+        encodeImage(layer3),
+        encodeImage(layer4),
+    ])
+
+@app.post("/background-bleed")
+async def background_bleed(
+        radius: int = Form(...),
+        intensity: int = Form(...),
+        resolution: int = Form(...),
+        layer1_blob: UploadFile = File(...),
+        layer2_blob: UploadFile = File(...),
+        layer3_blob: UploadFile = File(...),
+        layer4_blob: UploadFile = File(...),
+):
+    print("Hello there!")
+    layer1 = Image.open(io.BytesIO(await layer1_blob.read()))
+    layer2 = Image.open(io.BytesIO(await layer2_blob.read()))
+    layer3 = Image.open(io.BytesIO(await layer3_blob.read()))
+    layer4 = Image.open(io.BytesIO(await layer4_blob.read()))
+
+    layer0 = calcBackgroundBleed(layer2, radius, intensity, resolution)
+    full_image = fullComposite(layer0, layer1, layer2, layer3, layer4)
+    return JSONResponse(content=[
+        encodeImage(full_image),
+        encodeImage(layer0),
+        encodeImage(layer1),
+        encodeImage(layer2),
+        encodeImage(layer3),
+        encodeImage(layer4),
+    ])
+
+# Encodes all images to send them back to the frontend
+def encodeImage(image):
+    image_io = io.BytesIO()
+    image.save(image_io, format="PNG")
+    image_io.seek(0)
+    return base64.b64encode(image_io.getvalue()).decode('utf-8')
+
+# Composites all images
+def fullComposite(layer0, layer1, layer2, layer3, layer4):
+    layers01 = alpha_composite(layer0, layer1)
+    layers012 = alpha_composite(layers01, layer2)
+    layers0123 = alpha_composite(layers012, layer3)
+    layers01234 = alpha_composite(layers0123, layer4)
+    return layers01234
+
+# Response to dropshadow request. Changes dropshadow.
+@app.post("/dropshadow")
+async def dropshadow(
+        radius: int = Form(...), intensity: int = Form(...), resolution: int = Form(...),
+        layer0_blob: UploadFile = File(...),
+        layer2_blob: UploadFile = File(...),
+        layer3_blob: UploadFile = File(...),
+        layer4_blob: UploadFile = File(...),
+):
+    layer0 = Image.open(io.BytesIO(await layer0_blob.read()))
+    layer2 = Image.open(io.BytesIO(await layer2_blob.read()))
+    layer3 = Image.open(io.BytesIO(await layer3_blob.read()))
+    layer4 = Image.open(io.BytesIO(await layer4_blob.read()))
+
+    layer1 = calcDropshadow(layer2, radius, intensity, resolution)
+    full_image = fullComposite(layer0, layer1, layer2, layer3, layer4)
+    return JSONResponse(content=[
+        encodeImage(full_image),
+        encodeImage(layer0),
+        encodeImage(layer1),
+        encodeImage(layer2),
+        encodeImage(layer3),
+        encodeImage(layer4),
+    ])
+
+# Old
 @app.post("/apply-blur")
 async def apply_blur(file: UploadFile = File(...)):
     """
@@ -53,169 +155,6 @@ async def apply_blur(file: UploadFile = File(...)):
             status_code=500,
             content={"message": "Failed to process image", "error": str(e)},
         )
-@app.post("/submit-text")
-async def submit_text(
-        text: str = Form(...),
-        resolution: int = Form(...),
-        dropshadow_radius: int = Form(...),
-        dropshadow_intensity: int = Form(...)
-):
-    mask = generateText(text, resolution)
-    empty = Image.new('RGBA', mask.size, (0, 0, 0, 0))
-
-    maskArray = numpy.array(mask)
-    maskArray[:, :, 1] = 0
-    maskArray[:, :, 2] = 0
-
-    layer1 = calcDropshadow(mask, dropshadow_radius, dropshadow_intensity, resolution)
-    layer2 = Image.fromarray(maskArray)
-    layer3 = empty
-    layer4 = empty
-
-    layer0 = calcBackgroundBleed(layer2, 25, 10, resolution)
-
-    full = fullComposite(layer0, layer1, layer2, layer3, layer4)
-
-    return JSONResponse(content=[
-        encodeImage(full),
-        encodeImage(mask),
-        encodeImage(layer0),
-        encodeImage(layer1),
-        encodeImage(layer2),
-        encodeImage(layer3),
-        encodeImage(layer4),
-    ])
-
-def calcDropshadow(mask_image, radius, intensity, resolution):
-    if intensity > 1:
-        intensity = intensity / 100
-        if radius > 100:
-            print(f"dropshadow limited to 100 units radius")
-            radius = 100
-        if radius < 1:
-            radius = 1
-        if resolution > 2400:
-            resolution = 2400
-        if resolution < 1:
-            resolution = 1
-        radius = radius * resolution / 300
-        radius = round(radius)
-        print(f"Received dropshadow: {radius}")
-
-        # Handle dropshadow with Alpha channel and set all other channels to black
-        r, g, b, a = mask_image.split()
-        dilated = cv2.dilate(np.array(a), circular_kernel(radius), iterations=1)
-        blurred = cv2.GaussianBlur(dilated, (radius * 4 + 1, radius * 4 + 1), 0)
-        dimmed = np.clip(blurred * intensity, 0, 255).astype(np.uint8)
-        red = np.array(r)
-        red[:] = 0
-        green = np.array(g)
-        green[:] = 0
-        blue = np.array(b)
-        blue[:] = 0
-        dropshadow = Image.merge("RGBA", (Image.fromarray(red), Image.fromarray(green), Image.fromarray(blue), Image.fromarray(dimmed)))
-        return dropshadow
-    else:
-        return Image.new('RGBA', mask_image.size, (0, 0, 0, 0))
-
-def calcBackgroundBleed(layer2, radius, intensity, resolution):
-    layer2_np = np.array(layer2)
-    blurred = cv2.GaussianBlur(layer2_np, (int(0.02*resolution*radius + 1), int(0.02*resolution*radius + 1)), 0)
-    blurredImage = Image.fromarray(blurred)
-    blurredImage = alpha_composite(blurredImage, blurredImage)
-    return blurredImage
-
-def generateText(text, resolution):
-    print(f"Received text: {text}")
-
-    # More optimal Text mask code generated by Bing AI
-    # Define the text and font
-    font_path = r'C:\Users\System-Pc\Desktop\impact.ttf'
-    font_size = resolution #70 is roughly equivalent to 72 pt on 300 DPI A4 paper, tested in Photoshop
-    font = ImageFont.truetype(font_path, font_size)
-
-    # Create a temporary image to get the size of the text
-    temp_image = Image.new('RGBA', (1, 1), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(temp_image)
-    text_bbox = draw.textbbox((0, 0), text, font=font)
-    text_width = text_bbox[2] - text_bbox[0]
-    text_height = text_bbox[3] - text_bbox[1]
-
-    # Get font metrics for additional padding to avoid text cutoff
-    ascent, descent = font.getmetrics()
-    padding = descent + 10  # Add descent and some extra padding
-
-    # Create the final image with the size adjusted for padding
-    image_width = text_width + padding * 2
-    image_height = text_height + padding * 2
-    image = Image.new('RGBA', (image_width, image_height), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(image)
-
-    # Draw the text on the image with padding
-    draw.text((padding, padding - descent), text, font=font, fill="white", align="left")
-    dilated = cv2.dilate(np.array(image), np.ones((5, 5), np.uint8), iterations=1)
-    image2 = Image.fromarray(dilated)
-    return image2
-
-def encodeImage(image):
-    image_io = io.BytesIO()
-    image.save(image_io, format="PNG")
-    image_io.seek(0)
-    return base64.b64encode(image_io.getvalue()).decode('utf-8')
-
-def fullComposite(layer0, layer1, layer2, layer3, layer4):
-    layers01 = alpha_composite(layer0, layer1)
-    layers012 = alpha_composite(layers01, layer2)
-    layers0123 = alpha_composite(layers012, layer3)
-    layers01234 = alpha_composite(layers0123, layer4)
-    return layers01234
-
-@app.post("/dropshadow")
-async def dropshadow(
-        radius: int = Form(...),
-        intensity: int = Form(...),
-        resolution: int = Form(...),
-        mask_blob: UploadFile = File(...),
-        layer0_blob: UploadFile = File(...),
-        layer1_blob: UploadFile = File(...),
-        layer2_blob: UploadFile = File(...),
-        layer3_blob: UploadFile = File(...),
-        layer4_blob: UploadFile = File(...),
-):
-    mask_image = Image.open(io.BytesIO(await mask_blob.read()))
-    layer0 = Image.open(io.BytesIO(await layer0_blob.read()))
-    layer2 = Image.open(io.BytesIO(await layer2_blob.read()))
-    layer3 = Image.open(io.BytesIO(await layer3_blob.read()))
-    layer4 = Image.open(io.BytesIO(await layer4_blob.read()))
-
-    layer1 = calcDropshadow(mask_image, radius, intensity, resolution)
-    full_image = fullComposite(layer0, layer1, layer2, layer3, layer4)
-    return JSONResponse(content=[
-        encodeImage(full_image),
-        encodeImage(mask_image),
-        encodeImage(layer0),
-        encodeImage(layer1),
-        encodeImage(layer2),
-        encodeImage(layer3),
-        encodeImage(layer4),
-    ])
-
-
-def circular_kernel(radius):
-    # Create a square grid of size (2*radius+1) x (2*radius+1)
-    size = 2 * radius + 1
-    kernel = np.zeros((size, size), dtype=np.uint8)
-
-    # Calculate the center of the kernel
-    center = radius
-
-    # Fill the kernel with a circular pattern
-    for i in range(size):
-        for j in range(size):
-            if np.sqrt((i - center) ** 2 + (j - center) ** 2) <= radius:
-                kernel[int(i), int(j)] = 1
-
-    return kernel
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
