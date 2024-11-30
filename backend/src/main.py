@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 
 from backend.src.testing import load_images_from_folder
-from image_processing import process_image_blur, circular_kernel, calcDropshadow, calcBackgroundBleed
+from image_processing import process_image_blur, circular_kernel, calcDropshadow, calcBackgroundBleed, calcInnerShadow
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from letter_rendering import generate_letter_layer
 import io
@@ -36,7 +36,11 @@ async def submit_text(
         text: str = Form(...),
         resolution: int = Form(...),
         dropshadow_radius: int = Form(...),
-        dropshadow_intensity: int = Form(...)
+        dropshadow_intensity: int = Form(...),
+        bleed_radius: int = Form(...),
+        bleed_intensity: int = Form(...),
+        shadow_radius: int = Form(...),
+        shadow_intensity: int = Form(...)
 ):
     ## IMAGES ##
 
@@ -45,11 +49,11 @@ async def submit_text(
     ## IMAGES ##
 
     layer2 = generate_letter_layer(text, resolution, images)
-    layer0 = calcBackgroundBleed(layer2, 1, 1, resolution)
+    layer0 = calcBackgroundBleed(layer2, bleed_radius, bleed_intensity, resolution)
     layer1 = calcDropshadow(layer2, dropshadow_radius, dropshadow_intensity, resolution)
+    layer3 = calcInnerShadow(layer2, shadow_radius, shadow_intensity, 0, resolution)
 
     empty = Image.new('RGBA', layer2.size, (0, 0, 0, 0))
-    layer3 = empty
     layer4 = empty
 
 
@@ -74,7 +78,6 @@ async def background_bleed(
         layer3_blob: UploadFile = File(...),
         layer4_blob: UploadFile = File(...),
 ):
-    print("Hello there!")
     layer1 = Image.open(io.BytesIO(await layer1_blob.read()))
     layer2 = Image.open(io.BytesIO(await layer2_blob.read()))
     layer3 = Image.open(io.BytesIO(await layer3_blob.read()))
@@ -121,6 +124,33 @@ async def dropshadow(
     layer4 = Image.open(io.BytesIO(await layer4_blob.read()))
 
     layer1 = calcDropshadow(layer2, radius, intensity, resolution)
+    full_image = fullComposite(layer0, layer1, layer2, layer3, layer4)
+    return JSONResponse(content=[
+        encodeImage(full_image),
+        encodeImage(layer0),
+        encodeImage(layer1),
+        encodeImage(layer2),
+        encodeImage(layer3),
+        encodeImage(layer4),
+    ])
+
+@app.post("/inner-shadow")
+async def innerShadow(
+        radius: int = Form(...),
+        intensity: int = Form(...),
+        resolution: int = Form(...),
+        color: str = Form(...),
+        layer0_blob: UploadFile = File(...),
+        layer1_blob: UploadFile = File(...),
+        layer2_blob: UploadFile = File(...),
+        layer4_blob: UploadFile = File(...),
+):
+    layer0 = Image.open(io.BytesIO(await layer0_blob.read()))
+    layer1 = Image.open(io.BytesIO(await layer1_blob.read()))
+    layer2 = Image.open(io.BytesIO(await layer2_blob.read()))
+    layer4 = Image.open(io.BytesIO(await layer4_blob.read()))
+
+    layer3 = calcInnerShadow(layer2, radius, intensity, 0, resolution)
     full_image = fullComposite(layer0, layer1, layer2, layer3, layer4)
     return JSONResponse(content=[
         encodeImage(full_image),

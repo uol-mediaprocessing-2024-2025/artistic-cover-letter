@@ -8,13 +8,16 @@ const fileBlob = ref(null); // Store the image as a Blob (either from upload or 
 const blurredImage = ref(null); // Stores the blurred image from the backend
 const isLoading = ref(false);  // Boolean to show a loading spinner while the image is being processed
 const displayedImage = ref(null); // Handles the image currently displayed (original/blurred)
-const text = ref(null);
+const text = ref("Text");
 const errorMessage = ref(null);
 const resolution = ref("200");
 const dropshadowintensity = ref(0);
-const dropshadowradius = ref(0);
+const dropshadowradius = ref(10);
 const bleedintensity = ref(0);
-const bleedradius = ref(0);
+const bleedradius = ref(15);
+const shadowradius = ref(15);
+const shadowintensity = ref(0);
+const shadowcolor = ref(0);
 
 const fullImage = ref(null); //
 const layer_0 = ref(null); //
@@ -96,12 +99,19 @@ const resetImage = () => {
 const submitText = async () => {
   isLoading.value = true;
   errorMessage.value = null;
+  if (!text.valueOf().value) return;
+  if (resolution.valueOf().value > 1000) resolution.value = 1000;
+  if (resolution.valueOf().value < 100) resolution.value = 100;
   try {
     const formData = new FormData();
     formData.append('text', text.valueOf().value);
     formData.append('resolution', resolution.valueOf().value);
     formData.append('dropshadow_radius', dropshadowradius.valueOf().value);
     formData.append('dropshadow_intensity', dropshadowintensity.valueOf().value);
+    formData.append('bleed_radius', bleedradius.valueOf().value);
+    formData.append('bleed_intensity', bleedintensity.valueOf().value);
+    formData.append('shadow_radius', shadowradius.valueOf().value);
+    formData.append('shadow_intensity', shadowintensity.valueOf().value);
     const response = await axios.post(`${store.apiUrl}/submit-text`, formData, {});
   const imageArray = response.data;
   updateImages(imageArray);
@@ -168,7 +178,7 @@ const changeBackgroundBleed = async () => {
     const formData = new FormData();
     formData.append('radius', bleedradius.valueOf().value);
     formData.append('intensity', bleedintensity.valueOf().value);
-    formData.append('resolution', resolution.valueOf().value)
+    formData.append('resolution', resolution.valueOf().value);
     // Convert Images to blobs
     formData.append('layer1_blob', await fetch(layer_1.value).then(res => res.blob()));
     formData.append('layer2_blob', await fetch(layer_2.value).then(res => res.blob()));
@@ -176,6 +186,33 @@ const changeBackgroundBleed = async () => {
     formData.append('layer4_blob', await fetch(layer_4.value).then(res => res.blob()));
 
     const response = await axios.post(`${store.apiUrl}/background-bleed`, formData, {});
+    const imageArray = response.data;
+    updateImages(imageArray);
+  } catch (error) {
+    errorMessage.value = "Internal server error.";
+    console.error("Failure:", error);
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+const changeInnerShadow = async () => {
+  if (resolution.valueOf().value > 200){
+    isLoading.value = true;
+  }
+  errorMessage.value = null;
+  try {
+    const formData = new FormData();
+    formData.append('radius', shadowradius.valueOf().value);
+    formData.append('intensity', shadowintensity.valueOf().value);
+    formData.append('resolution', resolution.valueOf().value);
+    formData.append('color', shadowcolor.valueOf().value);
+    formData.append('layer0_blob', await fetch(layer_0.value).then(res => res.blob()));
+    formData.append('layer1_blob', await fetch(layer_1.value).then(res => res.blob()));
+    formData.append('layer2_blob', await fetch(layer_2.value).then(res => res.blob()));
+    formData.append('layer4_blob', await fetch(layer_4.value).then(res => res.blob()));
+
+    const response = await axios.post(`${store.apiUrl}/inner-shadow`, formData, {});
     const imageArray = response.data;
     updateImages(imageArray);
   } catch (error) {
@@ -215,9 +252,7 @@ const changeBackgroundBleed = async () => {
       <v-card-text>
             <!-- Wrapper div for positioning the loading overlay -->
             <div class="image-wrapper">
-              full image:
-              <v-img v-if="fullImage" :src="fullImage" max-height="1000" contain @click.stop="toggleImage"
-                     :class="{ 'clickable': blurredImage && !isLoading }">
+              <v-img v-if="fullImage" :src="fullImage" max-height="500">
                 </v-img>
                 <div class="d-flex align-center justify-center" v-else></div>
               <!-- Loading overlay with centered spinner -->
@@ -230,12 +265,12 @@ const changeBackgroundBleed = async () => {
       <v-alert v-if="errorMessage && !isLoading" type="error"> {{ errorMessage }} </v-alert>
     </v-card>
 
-    <!-- SETTINGS -->
+    <!-- EFFECTS -->
     <v-card elevation="2" class="pa-4 card-container">
-<v-card-title class="d-flex align-center">
-  <v-icon class="mr-2">mdi-creation</v-icon>
-  <h2>Effects</h2>
-</v-card-title>
+      <v-card-title class="d-flex align-center">
+        <v-icon class="mr-2">mdi-creation</v-icon>
+        <h2>Effects</h2>
+      </v-card-title>
       <v-expansion-panels>
         <v-expansion-panel title="Dropshadow">
           <v-expansion-panel-text>
@@ -262,7 +297,7 @@ const changeBackgroundBleed = async () => {
                 ></v-text-field>
               </template>
             </v-slider>
-            <v-slider v-model="bleedradius" label="Radius" :step="1" :max=30 :min=1 @end="changeBackgroundBleed" :disabled="isLoading">
+            <v-slider v-model="bleedradius" label="Radius" :step="1" :max=35 :min=1 @end="changeBackgroundBleed" :disabled="isLoading">
               <template v-slot:append>
                 <v-text-field v-model="bleedradius" density="compact" style="width: 100px" type="number" hide-details single-line @change="changeBackgroundBleed" :disabled="isLoading"
                 ></v-text-field>
@@ -270,13 +305,26 @@ const changeBackgroundBleed = async () => {
             </v-slider>
           </v-expansion-panel-text>
         </v-expansion-panel>
+
+        <v-expansion-panel title="Inner shadow">
+          <v-expansion-panel-text>
+            <v-slider v-model="shadowintensity" label="Intensity" :step="1" :max=100 :min=0 @end="changeInnerShadow" :disabled="isLoading">
+              <template v-slot:append>
+                <v-text-field v-model="shadowintensity" density="compact" style="width: 100px" type="number" hide-details single-line @change="changeInnerShadow" :disabled="isLoading"
+                ></v-text-field>
+              </template>
+            </v-slider>
+            <v-slider v-model="shadowradius" label="Radius" :step="1" :max=30 :min=1 @end="changeInnerShadow" :disabled="isLoading">
+              <template v-slot:append>
+                <v-text-field v-model="shadowradius" density="compact" style="width: 100px" type="number" hide-details single-line @change="changeInnerShadow" :disabled="isLoading"
+                ></v-text-field>
+              </template>
+            </v-slider>
+          </v-expansion-panel-text>
+        </v-expansion-panel>
+
       </v-expansion-panels>
-      <v-slider :min="200" :max="600" v-model="resolution" :ticks="tickLabels" show-ticks="always" step="200" tick-size="4" @end="submitText" :disabled="disableControls">
-        <template v-slot:append>
-          <v-text-field v-model="resolution" density="compact" style="width: 100px" type="number" hide-details single-line @change="submitText" :disabled="disableControls"
-          ></v-text-field>
-        </template>
-      </v-slider>
+      <!-- Layers for debugging
       <v-expansion-panels>
         <v-expansion-panel title="Layers (Debug)">
           <v-expansion-panel-text>
@@ -293,6 +341,19 @@ const changeBackgroundBleed = async () => {
           </v-expansion-panel-text>
         </v-expansion-panel>
       </v-expansion-panels>
+      -->
+    </v-card>
+    <v-card elevation="2" class="pa-4 card-container">
+      <v-card-title class="d-flex align-center">
+        <v-icon class="mr-2">mdi-export</v-icon>
+        <h2>Export</h2>
+      </v-card-title>
+      <v-slider :min="200" :max="600" v-model="resolution" :ticks="tickLabels" show-ticks="always" step="200" tick-size="4" @end="submitText" :disabled="isLoading">
+        <template v-slot:append>
+          <v-text-field v-model="resolution" density="compact" style="width: 100px" type="number" hide-details single-line @change="submitText" :disabled="isLoading"
+          ></v-text-field>
+        </template>
+      </v-slider>
     </v-card>
   </v-container>
 </template>
@@ -333,7 +394,7 @@ const changeBackgroundBleed = async () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(255, 255, 255, 0.7);
+  background-color: rgba(255, 255, 255, 0.4);
   display: flex;
   justify-content: center;
   align-items: center;

@@ -28,8 +28,8 @@ def generate_letter_layer(text, resolution, images):
 
     # Add some padding for effects
     # Change the padding here
-    pasted_image = Image.new('RGBA',(blank_image.width+int(resolution*1.1), blank_image.height+int(resolution*0.44)), (0, 0, 0, 0,))
-    pasted_image.paste(blank_image, (int(resolution*0.55), int(resolution*0.22)))
+    pasted_image = Image.new('RGBA',(blank_image.width+int(resolution*0.9), blank_image.height+int(resolution*0.39)), (0, 0, 0, 0,))
+    pasted_image.paste(blank_image, (int(resolution*0.45), int(resolution*0.195)))
     return pasted_image
 
 # Generates an array of letters as images from a given input resolution
@@ -86,6 +86,9 @@ def generate_letter_mask(text, resolution):
 def texture_letter(image, letter):
     # Get dimensions of the letter
     bbox = letter.getbbox()
+    # bbox will be none if the letter is empty
+    if bbox is None:
+        return Image.new('RGBA', image.size, (0, 0, 0, 0))
     letter_width = bbox[2] - bbox[0]
     letter_height = bbox[3] - bbox[1]
 

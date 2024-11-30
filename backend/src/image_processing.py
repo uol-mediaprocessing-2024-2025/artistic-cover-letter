@@ -1,4 +1,4 @@
-from PIL import Image, ImageFilter
+from PIL import Image, ImageFilter, ImageOps
 import numpy as np
 import cv2
 import io
@@ -39,8 +39,8 @@ def calcDropshadow(layer_2, radius, intensity, resolution):
 
         # Handle dropshadow with Alpha channel and set all other channels to black
         r, g, b, a = layer_2.split()
-        dilated = cv2.dilate(np.array(a), circular_kernel(radius), iterations=1)
-        blurred = cv2.GaussianBlur(dilated, (radius * 4 + 1, radius * 4 + 1), 0)
+        dilated = cv2.dilate(np.array(a), circular_kernel(int(radius/2)), iterations=1)
+        blurred = cv2.GaussianBlur(dilated, (radius * 2 + 1, radius * 2 + 1), 0)
         dimmed = np.clip(blurred * intensity, 0, 255).astype(np.uint8)
         red = np.array(r)
         red[:] = 0
@@ -61,9 +61,28 @@ def calcBackgroundBleed(layer2, radius, intensity, resolution):
     r2, g2, b2, a2 = layer2.split()
     background = Image.merge("RGBA", (r1, g1, b1, a2))
     blurred_background = background.filter(ImageFilter.GaussianBlur(radius=correctedradius))
+    r3, g3, b3, a3 = blurred_background.split()
+    multiplied_alpha = np.array(a3) * (intensity/100 + radius/100)
+    clipped_alpha = np.clip(multiplied_alpha, 0, 255).astype(np.uint8)
+    final = Image.merge("RGBA", (r3, g3, b3, Image.fromarray(clipped_alpha, "L")))
+    return final
 
+def calcInnerShadow(layer2, radius, intensity, color, resolution):
+    correctedradius = int(radius*(resolution/600))
+    r, g, b, a = layer2.split()
+    r2 = Image.fromarray(np.full((r.height,r.width), 255, dtype=np.uint8))
+    g2 = Image.fromarray(np.full((g.height, r.width), 255, dtype=np.uint8))
+    b2 = Image.fromarray(np.full((b.height, b.width), 255, dtype=np.uint8))
+    inverted_alpha = ImageOps.invert(a)
+    blurred_alpha = inverted_alpha.filter(ImageFilter.GaussianBlur(radius=correctedradius))
 
-    return blurred_background
+    multiplied_alpha = ((np.array(a)/255)*intensity/75) * np.array(blurred_alpha)
+    clipped_alpha = np.clip(multiplied_alpha, 0, 255).astype(np.uint8)
+    clipped_alpha_image = Image.fromarray(clipped_alpha, 'L')
+
+    result = Image.merge("RGBA", (r2, g2, b2, clipped_alpha_image))
+    return result
+
 
 async def process_image_blur(file):
     """
