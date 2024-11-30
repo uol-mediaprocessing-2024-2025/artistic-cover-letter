@@ -1,4 +1,6 @@
 import base64
+import json
+from typing import List
 
 import numpy
 from PIL.Image import alpha_composite
@@ -37,21 +39,22 @@ async def submit_text(
         resolution: int = Form(...),
         dropshadow_radius: int = Form(...),
         dropshadow_intensity: int = Form(...),
+        dropshadow_color: str = Form(...),
         bleed_radius: int = Form(...),
         bleed_intensity: int = Form(...),
         shadow_radius: int = Form(...),
-        shadow_intensity: int = Form(...)
+        shadow_intensity: int = Form(...),
+        shadow_color: str = Form(...),
+        # We need to receive uploaded photos here
 ):
     ## IMAGES ##
-
-    images = load_images_from_folder("C:/Users/Simon/Downloads/examplePhotos")
-
+    images2 = load_images_from_folder("C:/Users/Simon/Downloads/examplePhotos")
     ## IMAGES ##
 
-    layer2 = generate_letter_layer(text, resolution, images)
+    layer2 = generate_letter_layer(text, resolution, images2)
     layer0 = calcBackgroundBleed(layer2, bleed_radius, bleed_intensity, resolution)
-    layer1 = calcDropshadow(layer2, dropshadow_radius, dropshadow_intensity, resolution)
-    layer3 = calcInnerShadow(layer2, shadow_radius, shadow_intensity, 0, resolution)
+    layer1 = calcDropshadow(layer2, dropshadow_radius, dropshadow_intensity, dropshadow_color, resolution)
+    layer3 = calcInnerShadow(layer2, shadow_radius, shadow_intensity, shadow_color, resolution)
 
     empty = Image.new('RGBA', layer2.size, (0, 0, 0, 0))
     layer4 = empty
@@ -112,7 +115,7 @@ def fullComposite(layer0, layer1, layer2, layer3, layer4):
 # Response to dropshadow request. Changes dropshadow.
 @app.post("/dropshadow")
 async def dropshadow(
-        radius: int = Form(...), intensity: int = Form(...), resolution: int = Form(...),
+        radius: int = Form(...), intensity: int = Form(...), resolution: int = Form(...), color: str = Form(...),
         layer0_blob: UploadFile = File(...),
         layer2_blob: UploadFile = File(...),
         layer3_blob: UploadFile = File(...),
@@ -123,7 +126,7 @@ async def dropshadow(
     layer3 = Image.open(io.BytesIO(await layer3_blob.read()))
     layer4 = Image.open(io.BytesIO(await layer4_blob.read()))
 
-    layer1 = calcDropshadow(layer2, radius, intensity, resolution)
+    layer1 = calcDropshadow(layer2, radius, intensity, color, resolution)
     full_image = fullComposite(layer0, layer1, layer2, layer3, layer4)
     return JSONResponse(content=[
         encodeImage(full_image),
@@ -150,7 +153,7 @@ async def innerShadow(
     layer2 = Image.open(io.BytesIO(await layer2_blob.read()))
     layer4 = Image.open(io.BytesIO(await layer4_blob.read()))
 
-    layer3 = calcInnerShadow(layer2, radius, intensity, 0, resolution)
+    layer3 = calcInnerShadow(layer2, radius, intensity, color, resolution)
     full_image = fullComposite(layer0, layer1, layer2, layer3, layer4)
     return JSONResponse(content=[
         encodeImage(full_image),

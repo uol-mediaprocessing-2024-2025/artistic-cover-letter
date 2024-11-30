@@ -13,11 +13,12 @@ const errorMessage = ref(null);
 const resolution = ref("200");
 const dropshadowintensity = ref(0);
 const dropshadowradius = ref(10);
+const dropshadowcolor = ref("#000000");
 const bleedintensity = ref(0);
 const bleedradius = ref(15);
 const shadowradius = ref(15);
 const shadowintensity = ref(0);
-const shadowcolor = ref(0);
+const shadowcolor = ref("#000000");
 
 const fullImage = ref(null); //
 const layer_0 = ref(null); //
@@ -25,6 +26,9 @@ const layer_1 = ref(null); //
 const layer_2 = ref(null); //
 const layer_3 = ref(null); //
 const layer_4 = ref(null); //
+
+const newlyUploadedFiles = ref([]);
+const uploadedPhotos = ref([])
 
 
 // Watch for changes in the selected image from the gallery
@@ -108,10 +112,13 @@ const submitText = async () => {
     formData.append('resolution', resolution.valueOf().value);
     formData.append('dropshadow_radius', dropshadowradius.valueOf().value);
     formData.append('dropshadow_intensity', dropshadowintensity.valueOf().value);
+    formData.append('dropshadow_color', dropshadowcolor.valueOf().value);
     formData.append('bleed_radius', bleedradius.valueOf().value);
     formData.append('bleed_intensity', bleedintensity.valueOf().value);
     formData.append('shadow_radius', shadowradius.valueOf().value);
     formData.append('shadow_intensity', shadowintensity.valueOf().value);
+    formData.append('shadow_color', shadowcolor.valueOf().value);
+    //  We need to send the uploaded photos here, but I can't get it to work
     const response = await axios.post(`${store.apiUrl}/submit-text`, formData, {});
   const imageArray = response.data;
   updateImages(imageArray);
@@ -151,6 +158,7 @@ const changeDropshadow = async () => {
     const formData = new FormData();
     formData.append('radius', dropshadowradius.valueOf().value);
     formData.append('intensity', dropshadowintensity.valueOf().value);
+    formData.append('color', dropshadowcolor.valueOf().value);
     formData.append('resolution', resolution.valueOf().value);
     // Convert Images to blobs
     formData.append('layer0_blob', await fetch(layer_0.value).then(res => res.blob()));
@@ -222,6 +230,30 @@ const changeInnerShadow = async () => {
     isLoading.value = false;
   }
 }
+
+const downloadImage = async () => {
+  if (fullImage.value){
+    const link = document.createElement('a');
+    link.href = fullImage.value;
+    link.download = 'fullImage.png';
+    link.click();
+  }
+}
+
+const saveToGallery = async () => {
+  store.photoUrls.push(fullImage.value)
+}
+
+const handleFileUpload = async() => {
+  newlyUploadedFiles.value.forEach(file => {
+    uploadedPhotos.value.push(new Blob([file], { type: 'image/jpeg' }));
+  });
+  try {
+    await submitText()
+  } finally {
+    newlyUploadedFiles.value = null;
+  }
+}
 </script>
 
 <script>
@@ -244,11 +276,13 @@ const changeInnerShadow = async () => {
     <!-- A card to contain the form and images -->
     <v-card elevation="2" class="pa-4 card-container">
       <!-- Card title -->
-      <v-card-title class="justify-center">
-        <h2>Artistic Cover Letter</h2>
+      <v-card-title class="d-flex align-center">
+        <v-icon class="mr-2">mdi-pencil</v-icon>
+        <h2>Create</h2>
       </v-card-title>
       <!-- Card content -->
       <v-text-field v-model="text" label="Enter your text" prepend-icon="mdi-format-text" @keyup.enter="submitText" :disabled="isLoading"></v-text-field>
+      <v-file-input v-model="newlyUploadedFiles" label="Upload Images" multiple accept="image/*" @change="handleFileUpload" prepend-icon="mdi-upload" :disabled="isLoading"></v-file-input>
       <v-card-text>
             <!-- Wrapper div for positioning the loading overlay -->
             <div class="image-wrapper">
@@ -286,6 +320,7 @@ const changeInnerShadow = async () => {
                 ></v-text-field>
               </template>
             </v-slider>
+            <v-color-picker v-model="dropshadowcolor" hide-canvas @change="changeDropshadow" class="ma-2" :disabled="isLoading"></v-color-picker>
           </v-expansion-panel-text>
         </v-expansion-panel>
 
@@ -320,6 +355,7 @@ const changeInnerShadow = async () => {
                 ></v-text-field>
               </template>
             </v-slider>
+            <v-color-picker v-model="shadowcolor" hide-canvas @change="changeInnerShadow" class="ma-2" :disabled="isLoading"></v-color-picker>
           </v-expansion-panel-text>
         </v-expansion-panel>
 
@@ -354,6 +390,8 @@ const changeInnerShadow = async () => {
           ></v-text-field>
         </template>
       </v-slider>
+      <v-btn @click="downloadImage">Download Image</v-btn>
+      <v-btn @click="saveToGallery">Save to Gallery</v-btn>
     </v-card>
   </v-container>
 </template>
@@ -370,6 +408,8 @@ const changeInnerShadow = async () => {
 .card-container {
   max-width: 1500px;
   width: 100%;
+  margin-bottom: 3px;
+  margin-top: 3px;
 }
 
 .image-wrapper {
@@ -394,21 +434,11 @@ const changeInnerShadow = async () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(255, 255, 255, 0.4);
+  background-color: rgba(255, 255, 255, 0.2);
   display: flex;
   justify-content: center;
   align-items: center;
   border-radius: 8px;
-}
-
-.reset-btn {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-}
-
-.clickable {
-  cursor: pointer;
 }
 
 @media (max-width: 768px) {

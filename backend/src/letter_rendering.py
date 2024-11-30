@@ -21,7 +21,7 @@ def generate_letter_layer(text, resolution, images):
     blank_image, letters, coordinate_x = generate_letter_mask(text, resolution)
     textured_letters = []
     for index, image in enumerate(letters):
-        textured = texture_letter(images[index], image)
+        textured = texture_letter(images[index%len(images)], image)
         textured_letters.append(textured)
     for index, image in enumerate(textured_letters):
         blank_image.paste(image, (coordinate_x[index], 0))
