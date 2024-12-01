@@ -281,15 +281,15 @@ const handleFileUpload = async() => {
       <!-- Card title -->
       <v-card-title class="d-flex align-center">
         <v-icon class="mr-2">mdi-pencil</v-icon>
-        <h2>Create</h2>
+        <h3>&nbsp;Create</h3>
       </v-card-title>
       <!-- Card content -->
       <v-text-field v-model="text" label="Enter your text" prepend-icon="mdi-format-text" @keyup.enter="submitText" :disabled="isLoading"></v-text-field>
       <v-file-input v-model="newlyUploadedFiles" label="Upload Images" multiple accept="image/*" @change="handleFileUpload" prepend-icon="mdi-upload" :disabled="isLoading"></v-file-input>
       <v-card-text>
             <!-- Wrapper div for positioning the loading overlay -->
-            <div class="image-wrapper">
-              <v-img v-if="fullImage" :src="fullImage" max-height="500">
+              <div class="image-wrapper">
+              <v-img v-if="fullImage" :src="fullImage" max-height="450">
                 </v-img>
                 <div class="d-flex align-center justify-center" v-else></div>
               <!-- Loading overlay with centered spinner -->
@@ -307,7 +307,7 @@ const handleFileUpload = async() => {
     <v-card elevation="2" class="pa-4 card-container">
       <v-card-title class="d-flex align-center">
         <v-icon class="mr-2">mdi-creation</v-icon>
-        <h2>Effects</h2>
+        <h3>&nbsp;Effects</h3>
       </v-card-title>
       <v-expansion-panels>
         <v-expansion-panel title="Dropshadow">
@@ -386,7 +386,7 @@ const handleFileUpload = async() => {
     <v-card elevation="2" class="pa-4 card-container">
       <v-card-title class="d-flex align-center">
         <v-icon class="mr-2">mdi-export</v-icon>
-        <h2>Export</h2>
+        <h3>&nbsp;Export</h3>
       </v-card-title>
       <v-slider :min="200" :max="600" v-model="resolution" :ticks="tickLabels" show-ticks="always" step="200" tick-size="4" @end="submitText" :disabled="isLoading">
         <template v-slot:append>
@@ -410,7 +410,7 @@ const handleFileUpload = async() => {
 }
 
 .card-container {
-  max-width: 1500px;
+  max-width: 1200px;
   width: 100%;
   margin-bottom: 5px;
   margin-top: 5px;
@@ -418,6 +418,21 @@ const handleFileUpload = async() => {
 
 .image-wrapper {
   position: relative;
+}
+
+.v-slider{
+  padding-left: 15px;
+  padding-right: 15px;
+  padding-top: 3px;
+  padding-bottom: 3px;
+}
+
+.v-card-title{
+  padding-bottom:20px;
+}
+
+.v-btn{
+  margin: 5px;
 }
 
 .image-placeholder {
