@@ -56,6 +56,7 @@ def calcDropshadow(layer_2, radius, intensity, color, resolution):
 # Calculates the background bleed layer
 def calcBackgroundBleed(layer2, radius, intensity, resolution):
     correctedradius = int(radius*(resolution/200))
+    #dilation is a huge bottleneck at higher resolutions and not entirely consistent across resolutions
     dilated = Image.fromarray(cv2.dilate(np.array(layer2), circular_kernel(correctedradius)))
     r1, g1, b1, a1 = dilated.split()
     r2, g2, b2, a2 = layer2.split()

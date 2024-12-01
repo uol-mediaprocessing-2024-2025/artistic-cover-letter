@@ -97,7 +97,6 @@ def texture_letter(image, letter):
 
     # Calculate new dimensions for the image to fit within the letters bounding box
     if aspect_ratio > (letter_width / letter_height):
-        print("HERE!")
         new_height = letter_height
         new_width = int(letter_height * aspect_ratio)
     else:

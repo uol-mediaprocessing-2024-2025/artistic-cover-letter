@@ -10,6 +10,7 @@ const isLoading = ref(false);  // Boolean to show a loading spinner while the im
 const displayedImage = ref(null); // Handles the image currently displayed (original/blurred)
 const text = ref("Text");
 const errorMessage = ref(null);
+const alertMessage = ref(null);
 const resolution = ref("200");
 const dropshadowintensity = ref(0);
 const dropshadowradius = ref(10);
@@ -104,8 +105,9 @@ const submitText = async () => {
   isLoading.value = true;
   errorMessage.value = null;
   if (!text.valueOf().value) return;
-  if (resolution.valueOf().value > 1000) resolution.value = 1000;
+  if (resolution.valueOf().value > 1600) resolution.value = 1600;
   if (resolution.valueOf().value < 100) resolution.value = 100;
+  if (resolution.valueOf().value > 600) alertMessage.value = "This might take a while, please wait.";
   try {
     const formData = new FormData();
     formData.append('text', text.valueOf().value);
@@ -127,6 +129,7 @@ const submitText = async () => {
     console.error('Failure:', error);
   } finally {
     isLoading.value = false;
+    alertMessage.value = null;
   }
 }
 
@@ -296,6 +299,7 @@ const handleFileUpload = async() => {
             </div>
 
       </v-card-text>
+      <v-alert v-if="alertMessage" type="info"> {{ alertMessage }}</v-alert>
       <v-alert v-if="errorMessage && !isLoading" type="error"> {{ errorMessage }} </v-alert>
     </v-card>
 
@@ -402,14 +406,14 @@ const handleFileUpload = async() => {
 
 <style scoped>
 .main-container {
-  height: 100vh;
+  overflow: auto;
 }
 
 .card-container {
   max-width: 1500px;
   width: 100%;
-  margin-bottom: 3px;
-  margin-top: 3px;
+  margin-bottom: 5px;
+  margin-top: 5px;
 }
 
 .image-wrapper {
