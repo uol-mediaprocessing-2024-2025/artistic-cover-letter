@@ -34,14 +34,13 @@ const uploadedPhotos = ref([])
 
 // Watch for changes in the selected image from the gallery
 watch(
-  () => store.selectedImage,
+  () => store.photoUrls,
   async (newImage) => {
     if (newImage) {
       console.log("New image selected from gallery:", newImage);
       const response = await fetch(newImage);
       fileBlob.value = await response.blob();  // Convert gallery image to blob
-      displayedImage.value = newImage; // Display the selected image
-      blurredImage.value = null;
+      fullImage.value = newImage; // Display the selected image
     }
   },
   { immediate: true }
@@ -245,6 +244,7 @@ const downloadImage = async () => {
 
 const saveToGallery = async () => {
   store.photoUrls.push(fullImage.value)
+  alertMessage.value ="Image saved to gallery."
 }
 
 const handleFileUpload = async() => {
@@ -324,7 +324,7 @@ const handleFileUpload = async() => {
                 ></v-text-field>
               </template>
             </v-slider>
-            <v-color-picker v-model="dropshadowcolor" hide-canvas @change="changeDropshadow" class="ma-2" :disabled="isLoading"></v-color-picker>
+            <v-color-picker v-model="dropshadowcolor" hide-canvas @update:model-value="changeDropshadow" class="ma-2" :disabled="isLoading" show-swatches mode="rgb" :swatches="[['#000000', '#FFFFFF']]"></v-color-picker>
           </v-expansion-panel-text>
         </v-expansion-panel>
 
@@ -359,7 +359,7 @@ const handleFileUpload = async() => {
                 ></v-text-field>
               </template>
             </v-slider>
-            <v-color-picker v-model="shadowcolor" hide-canvas @change="changeInnerShadow" class="ma-2" :disabled="isLoading"></v-color-picker>
+            <v-color-picker v-model="shadowcolor" hide-canvas @update:model-value="changeInnerShadow" class="ma-2" :disabled="isLoading" show-swatches mode="rgb" :swatches="[['#000000', '#FFFFFF']]"></v-color-picker>
           </v-expansion-panel-text>
         </v-expansion-panel>
 

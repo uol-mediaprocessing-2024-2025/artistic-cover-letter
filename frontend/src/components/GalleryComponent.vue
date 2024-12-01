@@ -6,6 +6,7 @@ import { useRouter } from 'vue-router'; // Import Vue Router for navigation
 // Reactive reference to hold the list of images
 const images = ref([]);
 const router = useRouter(); // Initialize the router
+const fileBlob = ref(null);
 
 // onMounted lifecycle hook to fetch images when the component is mounted
 onMounted(() => {
@@ -13,9 +14,15 @@ onMounted(() => {
 });
 
 // Function to handle image click and navigate to the main view
-const handleImageClick = (imageSrc) => {
-    store.selectedImage = imageSrc; // Set the selected image in the store
-    router.push('/'); // Navigate to the main view
+const handleImageClick = async (imageSrc) => {
+  store.selectedImage = imageSrc; // Set the selected image in the store
+  const response = await fetch(imageSrc);
+  fileBlob.value = await response.blob();
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(fileBlob.valueOf().value);
+  link.download = 'fullImage.png';
+  link.click();
+  console.log(fileBlob.valueOf().value);
 };
 </script>
 

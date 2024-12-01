@@ -5,5 +5,4 @@ import { reactive, ref } from 'vue';
 export const store = reactive({
     photoUrls: [], // Stores the URLs of the fetched unblurred photos
     apiUrl: 'http://localhost:8000', // Base URL for API requests
-    selectedImage: null, // Stores the selected image
 });
