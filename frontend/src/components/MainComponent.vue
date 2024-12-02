@@ -31,20 +31,7 @@ const layer_4 = ref(null); //
 const newlyUploadedFiles = ref([]);
 const uploadedPhotos = ref([])
 
-
-// Watch for changes in the selected image from the gallery
-watch(
-  () => store.photoUrls,
-  async (newImage) => {
-    if (newImage) {
-      console.log("New image selected from gallery:", newImage);
-      const response = await fetch(newImage);
-      fileBlob.value = await response.blob();  // Convert gallery image to blob
-      fullImage.value = newImage; // Display the selected image
-    }
-  },
-  { immediate: true }
-);
+const photoPanel = ref(null);
 
 // Handle image upload
 const handleImageUpload = (event) => {
@@ -101,9 +88,16 @@ const resetImage = () => {
 };
 
 const submitText = async () => {
+    if (!text.valueOf().value){
+    alertMessage.value = "Please type in your text.";
+    return;
+  }
+  if (uploadedPhotos.value.length === 0){
+    alertMessage.value = "Please upload some photos.";
+    return;
+  }
   isLoading.value = true;
   errorMessage.value = null;
-  if (!text.valueOf().value) return;
   if (resolution.valueOf().value > 1600) resolution.value = 1600;
   if (resolution.valueOf().value < 100) resolution.value = 100;
   if (resolution.valueOf().value > 600) alertMessage.value = "This might take a while, please wait.";
@@ -119,7 +113,12 @@ const submitText = async () => {
     formData.append('shadow_radius', shadowradius.valueOf().value);
     formData.append('shadow_intensity', shadowintensity.valueOf().value);
     formData.append('shadow_color', shadowcolor.valueOf().value);
-    //  We need to send the uploaded photos here, but I can't get it to work
+    // I got it to work, yay
+    for (const URL of uploadedPhotos.value) {
+      const response = await fetch(URL);
+      const blob = await response.blob();
+      formData.append('photos', blob, `image.jpg`)
+    }
     const response = await axios.post(`${store.apiUrl}/submit-text`, formData, {});
   const imageArray = response.data;
   updateImages(imageArray);
@@ -249,13 +248,19 @@ const saveToGallery = async () => {
 
 const handleFileUpload = async() => {
   newlyUploadedFiles.value.forEach(file => {
-    uploadedPhotos.value.push(new Blob([file], { type: 'image/jpeg' }));
+    uploadedPhotos.value.push(URL.createObjectURL(new Blob([file], { type: 'image/jpeg' })));
   });
   try {
     await submitText()
   } finally {
     newlyUploadedFiles.value = null;
   }
+}
+
+const deleteAllPhotos = async () => {
+  uploadedPhotos.value = []
+  photoPanel.value = null;
+  await submitText()
 }
 </script>
 
@@ -285,7 +290,21 @@ const handleFileUpload = async() => {
       </v-card-title>
       <!-- Card content -->
       <v-text-field v-model="text" label="Enter your text" prepend-icon="mdi-format-text" @keyup.enter="submitText" :disabled="isLoading"></v-text-field>
-      <v-file-input v-model="newlyUploadedFiles" label="Upload Images" multiple accept="image/*" @change="handleFileUpload" prepend-icon="mdi-upload" :disabled="isLoading"></v-file-input>
+      <v-file-input v-model="newlyUploadedFiles" label="Upload photos" multiple accept="image/*" @change="handleFileUpload" prepend-icon="mdi-upload" :disabled="isLoading"></v-file-input>
+      <v-expansion-panels v-model="photoPanel">
+        <v-expansion-panel title="Your photos">
+          <v-expansion-panel-text>
+            <v-container>
+              <v-row>
+                <v-col  v-for="(photo, index) in uploadedPhotos" :key="index" md="2">
+                <v-img :src="photo"></v-img>
+                </v-col>
+              </v-row>
+            </v-container>
+            <v-btn @click="deleteAllPhotos" :disabled="isLoading">Delete all photos</v-btn>
+          </v-expansion-panel-text>
+        </v-expansion-panel>
+      </v-expansion-panels>
       <v-card-text>
             <!-- Wrapper div for positioning the loading overlay -->
               <div class="image-wrapper">
@@ -297,7 +316,6 @@ const handleFileUpload = async() => {
                 <v-progress-circular indeterminate color="primary" size="50"></v-progress-circular>
               </div>
             </div>
-
       </v-card-text>
       <v-alert v-if="alertMessage" type="info"> {{ alertMessage }}</v-alert>
       <v-alert v-if="errorMessage && !isLoading" type="error"> {{ errorMessage }} </v-alert>

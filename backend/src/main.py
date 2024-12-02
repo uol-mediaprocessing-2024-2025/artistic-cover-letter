@@ -8,7 +8,6 @@ from fastapi import FastAPI, UploadFile, File, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 
-from backend.src.testing import load_images_from_folder
 from image_processing import process_image_blur, circular_kernel, calcDropshadow, calcBackgroundBleed, calcInnerShadow
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from letter_rendering import generate_letter_layer
@@ -45,13 +44,15 @@ async def submit_text(
         shadow_radius: int = Form(...),
         shadow_intensity: int = Form(...),
         shadow_color: str = Form(...),
-        # We need to receive uploaded photos here
+        photos: list[UploadFile] = File(...),
 ):
-    ## IMAGES ##
-    images2 = load_images_from_folder("C:/Users/Simon/Downloads/examplePhotos")
-    ## IMAGES ##
+    images = []
+    for photo in photos:
+        data = await photo.read()
+        image = Image.open(io.BytesIO(data))
+        images.append(image)
 
-    layer2 = generate_letter_layer(text, resolution, images2)
+    layer2 = generate_letter_layer(text, resolution, images)
     layer0 = calcBackgroundBleed(layer2, bleed_radius, bleed_intensity, resolution)
     layer1 = calcDropshadow(layer2, dropshadow_radius, dropshadow_intensity, dropshadow_color, resolution)
     layer3 = calcInnerShadow(layer2, shadow_radius, shadow_intensity, shadow_color, resolution)
