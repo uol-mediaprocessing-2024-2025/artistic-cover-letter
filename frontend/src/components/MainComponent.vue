@@ -233,12 +233,10 @@ const changeInnerShadow = async () => {
 }
 
 const downloadImage = async () => {
-  if (fullImage.value){
-    const link = document.createElement('a');
-    link.href = fullImage.value;
-    link.download = 'fullImage.png';
-    link.click();
-  }
+  const link = document.createElement('a');
+  link.href = fullImage.value;
+  link.download = 'fullImage.png';
+  link.click();
 }
 
 const saveToGallery = async () => {
@@ -412,8 +410,8 @@ const deleteAllPhotos = async () => {
           ></v-text-field>
         </template>
       </v-slider>
-      <v-btn @click="downloadImage">Download Image</v-btn>
-      <v-btn @click="saveToGallery">Save to Gallery</v-btn>
+      <v-btn @click="downloadImage" :disabled="!fullImage">Download Image</v-btn>
+      <v-btn @click="saveToGallery" :disabled="!fullImage">Save to Gallery</v-btn>
     </v-card>
   </v-container>
 </template>
