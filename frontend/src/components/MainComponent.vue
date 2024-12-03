@@ -11,7 +11,7 @@ const displayedImage = ref(null); // Handles the image currently displayed (orig
 const text = ref("Text");
 const errorMessage = ref(null);
 const alertMessage = ref(null);
-const resolution = ref("200");
+const resolution = ref("250");
 const dropshadowintensity = ref(0);
 const dropshadowradius = ref(10);
 const dropshadowcolor = ref("#000000");
@@ -100,7 +100,7 @@ const submitText = async () => {
   errorMessage.value = null;
   if (resolution.valueOf().value > 1600) resolution.value = 1600;
   if (resolution.valueOf().value < 100) resolution.value = 100;
-  if (resolution.valueOf().value > 600) alertMessage.value = "This might take a while, please wait.";
+  if (resolution.valueOf().value > 750) alertMessage.value = "This might take a while, please wait.";
   try {
     const formData = new FormData();
     formData.append('text', text.valueOf().value);
@@ -151,7 +151,7 @@ const updateImages = (imageArray) => {
 }
 
 const changeDropshadow = async () => {
-  if (resolution.valueOf().value > 200) {
+  if (resolution.valueOf().value > 250) {
     isLoading.value = true;
   }
   errorMessage.value = null;
@@ -179,7 +179,7 @@ const changeDropshadow = async () => {
 }
 
 const changeBackgroundBleed = async () => {
-  if (resolution.valueOf().value > 200){
+  if (resolution.valueOf().value > 250){
     isLoading.value = true;
   }
   errorMessage.value = null;
@@ -206,7 +206,7 @@ const changeBackgroundBleed = async () => {
 }
 
 const changeInnerShadow = async () => {
-  if (resolution.valueOf().value > 200){
+  if (resolution.valueOf().value > 250){
     isLoading.value = true;
   }
   errorMessage.value = null;
@@ -267,9 +267,9 @@ const deleteAllPhotos = async () => {
     data () {
       return {
         tickLabels: {
-          200: 'Low Quality',
-          400: 'Standard Quality',
-          600: 'High Quality',
+          250: 'Low Quality',
+          500: 'Standard Quality',
+          750: 'High Quality',
         },
       }
     },
@@ -404,7 +404,7 @@ const deleteAllPhotos = async () => {
         <v-icon class="mr-2">mdi-export</v-icon>
         <h3>&nbsp;Export</h3>
       </v-card-title>
-      <v-slider :min="200" :max="600" v-model="resolution" :ticks="tickLabels" show-ticks="always" step="200" tick-size="4" @end="submitText" :disabled="isLoading">
+      <v-slider :min="250" :max="750" v-model="resolution" :ticks="tickLabels" show-ticks="always" step="250" tick-size="4" @end="submitText" :disabled="isLoading">
         <template v-slot:append>
           <v-text-field v-model="resolution" density="compact" style="width: 100px" type="number" hide-details single-line @change="submitText" :disabled="isLoading"
           ></v-text-field>
