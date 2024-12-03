@@ -290,7 +290,7 @@ const deleteAllPhotos = async () => {
       <v-text-field v-model="text" label="Enter your text" prepend-icon="mdi-format-text" @keyup.enter="submitText" :disabled="isLoading"></v-text-field>
       <v-file-input v-model="newlyUploadedFiles" label="Upload photos" multiple accept="image/*" @change="handleFileUpload" prepend-icon="mdi-upload" :disabled="isLoading"></v-file-input>
       <v-expansion-panels v-model="photoPanel">
-        <v-expansion-panel title="Your photos">
+        <v-expansion-panel :title="'Your photos (' + uploadedPhotos.length + ')'">
           <v-expansion-panel-text>
             <v-container>
               <v-row>
