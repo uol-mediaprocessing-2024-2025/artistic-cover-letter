@@ -1,5 +1,5 @@
 <script setup>
-import {ref, watch} from 'vue';
+import {onMounted, ref, watch} from 'vue';
 import axios from 'axios';
 import {store} from '../store'; // Import shared store to manage global state
 
@@ -8,7 +8,6 @@ const fileBlob = ref(null); // Store the image as a Blob (either from upload or 
 const blurredImage = ref(null); // Stores the blurred image from the backend
 const isLoading = ref(false);  // Boolean to show a loading spinner while the image is being processed
 const displayedImage = ref(null); // Handles the image currently displayed (original/blurred)
-const text = ref("Text");
 const errorMessage = ref(null);
 const alertMessage = ref(null);
 const resolution = ref("250");
@@ -21,6 +20,13 @@ const shadowradius = ref(15);
 const shadowintensity = ref(0);
 const shadowcolor = ref("#000000");
 
+// Text options
+
+const text = ref("Text");
+const selectedFont = ref("Impact");
+const availableFonts = ref([]);
+const weight = ref("bold");
+
 const fullImage = ref(null); //
 const layer_0 = ref(null); //
 const layer_1 = ref(null); //
@@ -32,6 +38,17 @@ const newlyUploadedFiles = ref([]);
 const uploadedPhotos = ref([])
 
 const photoPanel = ref(null);
+
+// onMounted is run when the page gets mounted in order to retrieve available fonts.
+onMounted(async () => {
+  try {
+    const response = await axios.post(`${store.apiUrl}/retrieve-fonts`, "", {});
+    availableFonts.value = response.data
+  } catch (error) {
+    errorMessage.value = "Internal server error.";
+    console.error('Failure:', error);
+  }
+});
 
 // Handle image upload
 const handleImageUpload = (event) => {
@@ -104,6 +121,7 @@ const submitText = async () => {
   try {
     const formData = new FormData();
     formData.append('text', text.valueOf().value);
+    formData.append('font', selectedFont.valueOf().value);
     formData.append('resolution', resolution.valueOf().value);
     formData.append('dropshadow_radius', dropshadowradius.valueOf().value);
     formData.append('dropshadow_intensity', dropshadowintensity.valueOf().value);
@@ -258,7 +276,20 @@ const handleFileUpload = async() => {
 const deleteAllPhotos = async () => {
   uploadedPhotos.value = []
   photoPanel.value = null;
+  fullImage.value = null;
   await submitText()
+}
+
+const onWheel = async (event) => {
+  if (!fullImage.value){
+    const index = availableFonts.value.indexOf(selectedFont.value)
+    if (event.deltaY > 0) {
+      selectedFont.value = availableFonts.value[(index+1)%availableFonts.value.length];
+    } else {
+      selectedFont.value = availableFonts.value[(index+availableFonts.value.length-1)%availableFonts.value.length];
+    }
+    await submitText();
+  }
 }
 </script>
 
@@ -288,6 +319,7 @@ const deleteAllPhotos = async () => {
       </v-card-title>
       <!-- Card content -->
       <v-text-field v-model="text" label="Enter your text" prepend-icon="mdi-format-text" @keyup.enter="submitText" :disabled="isLoading"></v-text-field>
+      <v-select label="Select font" prepend-icon="mdi-format-font" :items="availableFonts" v-model="selectedFont" @wheel="onWheel" @update:modelValue="submitText" :disabled="isLoading"></v-select>
       <v-file-input v-model="newlyUploadedFiles" label="Upload photos" multiple accept="image/*" @change="handleFileUpload" prepend-icon="mdi-upload" :disabled="isLoading"></v-file-input>
       <v-expansion-panels v-model="photoPanel">
         <v-expansion-panel :title="'Your photos (' + uploadedPhotos.length + ')'">
@@ -306,7 +338,7 @@ const deleteAllPhotos = async () => {
       <v-card-text>
             <!-- Wrapper div for positioning the loading overlay -->
               <div class="image-wrapper">
-              <v-img v-if="fullImage" :src="fullImage" max-height="450">
+              <v-img v-if="fullImage" :src="fullImage" max-height="450" :disabled="!fullImage">
                 </v-img>
                 <div class="d-flex align-center justify-center" v-else></div>
               <!-- Loading overlay with centered spinner -->
@@ -315,6 +347,8 @@ const deleteAllPhotos = async () => {
               </div>
             </div>
       </v-card-text>
+      <!-- Bing AI helped me find the right style settings for the p tag.-->
+      <div v-if="!fullImage"><p :style="{ fontWeight: weight, fontFamily: selectedFont, fontSize: '5vw', maxHeight: '450px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }"> {{text}} </p></div>
       <v-alert v-if="alertMessage" type="info"> {{ alertMessage }}</v-alert>
       <v-alert v-if="errorMessage && !isLoading" type="error"> {{ errorMessage }} </v-alert>
     </v-card>

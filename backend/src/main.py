@@ -10,7 +10,7 @@ from fastapi.responses import StreamingResponse, JSONResponse
 
 from image_processing import process_image_blur, circular_kernel, calcDropshadow, calcBackgroundBleed, calcInnerShadow
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
-from letter_rendering import generate_letter_layer
+from letter_rendering import generate_letter_layer, get_fonts
 import io
 import uvicorn
 import cv2
@@ -35,6 +35,7 @@ app.add_middleware(
 @app.post("/submit-text")
 async def submit_text(
         text: str = Form(...),
+        font: str = Form(...),
         resolution: int = Form(...),
         dropshadow_radius: int = Form(...),
         dropshadow_intensity: int = Form(...),
@@ -52,7 +53,7 @@ async def submit_text(
         image = Image.open(io.BytesIO(data))
         images.append(image)
 
-    layer2 = generate_letter_layer(text, resolution, images)
+    layer2 = generate_letter_layer(text, font, resolution, images)
     layer0 = calcBackgroundBleed(layer2, bleed_radius, bleed_intensity, resolution)
     layer1 = calcDropshadow(layer2, dropshadow_radius, dropshadow_intensity, dropshadow_color, resolution)
     layer3 = calcInnerShadow(layer2, shadow_radius, shadow_intensity, shadow_color, resolution)
@@ -164,6 +165,11 @@ async def innerShadow(
         encodeImage(layer3),
         encodeImage(layer4),
     ])
+
+@app.post("/retrieve-fonts")
+async def retrieveFonts():
+    font_files, font_names = get_fonts()
+    return JSONResponse(content=font_names)
 
 # Old
 @app.post("/apply-blur")
