@@ -26,7 +26,9 @@ def generate_letter_layer(text, font, resolution, images):
         textured = texture_letter(images[index%len(images)], image)
         textured_letters.append(textured)
     for index, image in enumerate(textured_letters):
-        blank_image.paste(image, (coordinate_x[index], 0))
+        next_letter = Image.new("RGBA", blank_image.size)
+        next_letter.paste(image, (coordinate_x[index], 0))
+        blank_image = Image.alpha_composite(blank_image, next_letter)
 
     # Add some padding for effects
     # Change the padding here
@@ -80,12 +82,11 @@ def generate_letter_mask(text, font_name, resolution):
 
         #draw letter and dilate
         draw.text((0, int(resolution/4) - descent), char, font=font, fill="white", align="left")
-        nextLetterX = nextLetterX + text_width
-        dilated = cv2.dilate(np.array(image), circular_kernel(int(resolution/200)), iterations=1)
+        nextLetterX = nextLetterX + int(font.getlength(char, "")) #needs actual letter width
 
         #add to arrays
         coordinate_x.append(nextLetterX)
-        letters.append(Image.fromarray(dilated))
+        letters.append(image)
     return blank_image, letters, coordinate_x
 
 # Textures letter using an image and the bounding box of the letter
@@ -99,15 +100,16 @@ def texture_letter(image, letter):
     letter_height = bbox[3] - bbox[1]
 
     # Calculate aspect ratio of the image
-    aspect_ratio = image.width / image.height
+    image_aspect_ratio = image.width / image.height
+    letter_aspect_ratio = letter_width / letter_height
 
     # Calculate new dimensions for the image to fit within the letters bounding box
-    if aspect_ratio > (letter_width / letter_height):
+    if image_aspect_ratio > letter_aspect_ratio:
         new_height = letter_height
-        new_width = int(letter_height * aspect_ratio)
+        new_width = int(letter_height * image_aspect_ratio)
     else:
-        new_height = letter_height
-        new_width = int(letter_height * aspect_ratio)
+        new_width = letter_width
+        new_height = int(letter_width / image_aspect_ratio)
 
     # Resize the image
     resized_image = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
@@ -116,8 +118,8 @@ def texture_letter(image, letter):
     centered_image = Image.new('RGBA', (letter.width, letter.height), (0, 0, 0, 0))
 
     # Calculate the position to paste the resized image to center it
-    x_offset = (letter_width - new_width) // 2
-    y_offset = bbox[1]
+    x_offset = bbox[0] + int((letter_width - new_width) / 2)
+    y_offset = bbox[1] + int((letter_height - new_height) / 2)
 
     # Paste the resized image onto the new blank image
     centered_image.paste(resized_image, (x_offset, y_offset))
