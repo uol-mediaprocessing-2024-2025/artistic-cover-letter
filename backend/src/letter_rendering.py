@@ -30,10 +30,15 @@ def generate_letter_layer(text, font, resolution, images):
         next_letter.paste(image, (coordinate_x[index], 0))
         blank_image = Image.alpha_composite(blank_image, next_letter)
 
-    # Add some padding for effects
-    # Change the padding here
-    pasted_image = Image.new('RGBA',(blank_image.width+int(resolution*0.9), blank_image.height+int(resolution*0.39)), (0, 0, 0, 0,))
-    pasted_image.paste(blank_image, (int(resolution*0.45), int(resolution*0.195)))
+    # Automatic padding
+    bbox = blank_image.getbbox()
+    new_width = (bbox[3] - bbox[1])+resolution
+    new_height = (bbox[2] - bbox[0])+resolution
+    x_offset = -bbox[0] + int(resolution/2)
+    y_offset = -bbox[1] + int(resolution/2)
+
+    pasted_image = Image.new('RGBA',(new_height, new_width), (0, 0, 0, 0,))
+    pasted_image.paste(blank_image, (x_offset, y_offset))
     return pasted_image
 
 # Generates an array of letters as images from a given input resolution
@@ -60,6 +65,8 @@ def generate_letter_mask(text, font_name, resolution):
 
     # Get font metrics for additional padding to avoid text cutoff
     ascent, descent = font.getmetrics()
+    print("Ascent: " + str(ascent))
+    print("Descent: " + str(descent))
 
     # Create the final image with the size adjusted for padding
     image_width = text_width
