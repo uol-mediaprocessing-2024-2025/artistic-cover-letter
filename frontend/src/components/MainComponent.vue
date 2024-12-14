@@ -282,6 +282,8 @@ const deleteAllPhotos = async () => {
 
 const onWheel = async (event) => {
   if (!fullImage.value){
+    event.preventDefault();
+    event.stopPropagation();
     const index = availableFonts.value.indexOf(selectedFont.value)
     if (event.deltaY > 0) {
       selectedFont.value = availableFonts.value[(index+1)%availableFonts.value.length];
@@ -289,6 +291,16 @@ const onWheel = async (event) => {
       selectedFont.value = availableFonts.value[(index+availableFonts.value.length-1)%availableFonts.value.length];
     }
     await submitText();
+  }
+}
+
+const keyDown = async (event) => {
+  const index = availableFonts.value.indexOf(selectedFont.value)
+  if (event.key === 'ArrowRight') {
+      selectedFont.value = availableFonts.value[(index+1)%availableFonts.value.length];
+  }
+  if (event.key === 'ArrowLeft'){
+    selectedFont.value = availableFonts.value[(index+availableFonts.value.length-1)%availableFonts.value.length];
   }
 }
 </script>
@@ -319,7 +331,7 @@ const onWheel = async (event) => {
       </v-card-title>
       <!-- Card content -->
       <v-text-field v-model="text" label="Enter your text" prepend-icon="mdi-format-text" @keyup.enter="submitText" :disabled="isLoading"></v-text-field>
-      <v-select label="Select font" prepend-icon="mdi-format-font" :items="availableFonts" v-model="selectedFont" @wheel="onWheel" @update:modelValue="submitText" :disabled="isLoading"></v-select>
+      <v-select label="Select font" prepend-icon="mdi-format-font" :items="availableFonts" v-model="selectedFont" @wheel="onWheel" @keydown="keyDown" @update:modelValue="submitText" :disabled="isLoading"></v-select>
       <v-file-input v-model="newlyUploadedFiles" label="Upload photos" multiple accept="image/*" @change="handleFileUpload" prepend-icon="mdi-upload" :disabled="isLoading"></v-file-input>
       <v-expansion-panels v-model="photoPanel">
         <v-expansion-panel :title="'Your photos (' + uploadedPhotos.length + ')'">
