@@ -4,7 +4,7 @@ from fastapi import FastAPI, UploadFile, File, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 
-from backend.src.image_processing import calcBackgroundBleed, calcDropshadow, calcInnerShadow
+from backend.src.image_processing import calcBackgroundBleed, calcDropshadow, calcInnerShadow, circular_kernel
 from image_processing import process_image_blur
 from PIL import Image,ImageDraw,ImageFont,ImageChops
 from letter_rendering import generate_letter_layer
@@ -18,8 +18,63 @@ import cv2
 import numpy as np
 import base64
 from letter_rendering import generate_letter_mask, texture_letter
+from collections import Counter
 
 def main():
+    images = load_images_from_folder("C:/Users/Simon/Downloads/examplePhotos2/")
+    colors_1 = extract_dominant_colors(images[0], 20)
+    colors_2 = extract_dominant_colors(images[1], 20)
+    colors_3 = extract_dominant_colors(images[2], 20)
+    distance = color_scheme_distance(colors_1, colors_2)
+    print("Total distance: " + str(distance))
+    distance = color_scheme_distance(colors_1, colors_3)
+    print("Total distance: " + str(distance))
+
+    for image in images:
+        dominant_colors = extract_dominant_colors(image, 20)
+        print("Dominant Colors:", dominant_colors)
+        plot_colors(dominant_colors)
+
+    # todo: implement adjacency list for all images to identify pairs
+
+# Calculates the distance between two color schemes
+def color_scheme_distance(colors_1, colors_2):
+    total_distance = 0
+    for index1, color1 in enumerate(colors_1):
+        # Iterate through each color for scheme 1
+        distance = 255*3
+        for index2, color2 in enumerate(colors_2):
+            # Iterate through each color from scheme 2 to find the best match (lowest distance)
+            r_distance = abs(int(color1[0]) - int(color2[0]))
+            g_distance = abs(int(color1[1]) - int(color2[1]))
+            b_distance = abs(int(color1[2]) - int(color2[2]))
+            new_distance = r_distance + g_distance + b_distance
+            if new_distance < distance:
+                distance = new_distance
+        total_distance = total_distance + distance
+    return total_distance
+
+# Extracts dominant colors, with help from Bing AI
+def extract_dominant_colors(image, num_colors=20):
+    image = image.resize((100, 100))  # Resize for performance
+    image = image.convert('RGB')
+    dilated = cv2.dilate(np.array(image), circular_kernel(1)) # Dilate to reduce number of darker colors, not the best solution
+    image = Image.fromarray(dilated)
+
+    pixels = np.array(image).reshape(-1, 3)
+    pixel_counts = Counter(map(tuple, pixels))
+    dominant_colors = pixel_counts.most_common(num_colors)
+
+    return [color for color, count in dominant_colors]
+
+# Plot the colors as bar chart for testing. Bing AI Method
+def plot_colors(colors):
+    fig, ax = plt.subplots(1, 1, figsize=(8, 2), subplot_kw=dict(xticks=[], yticks=[], frame_on=False))
+    ax.imshow([colors], aspect='auto')
+    plt.show()
+
+
+def main2():
     # Proof of concept animation
     images = load_images_from_folder("C:/Users/Simon/Downloads/examplePhotos")
 
