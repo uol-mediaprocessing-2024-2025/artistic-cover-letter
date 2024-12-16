@@ -1,8 +1,8 @@
 <template>
     <!-- Main application container -->
-    <v-app id="app">
+    <v-app id="app" :theme="themeState.isDark ? 'dark' : 'light'">
         <!-- Sidebar navigation using Vuetify's navigation drawer -->
-        <v-navigation-drawer app permanent style="background-color: rgb(30, 50, 92);" class="px-2 text-white">
+        <v-navigation-drawer app permanent>
             <!-- Title and subtitle for the app -->
             <v-list-item title="Artistic Cover Letter" subtitle="preview 1"></v-list-item>
             <v-divider></v-divider>
@@ -34,12 +34,28 @@ import {
     RouterLink, // Component for linking to different routes
     RouterView  // Component for displaying the matched component
 } from 'vue-router';
+import {themeState} from "@/views/theme.js";
 
 export default {
+  computed: {
+    themeState() {
+      return themeState
+    },
+  },
     components: {
         RouterLink, // Register RouterLink for navigation
         RouterView, // Register RouterView for dynamic component rendering
     },
+  data() {
+      return {
+        isDark: false
+      };
+  },
+  watch: {
+      isDark(val) {
+        this.$vuetify.theme.dark = val;
+      }
+  },
 };
 </script>
 

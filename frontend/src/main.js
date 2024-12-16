@@ -16,6 +16,34 @@ import * as directives from 'vuetify/directives'
 const vuetify = createVuetify({
     components, // Register Vuetify components
     directives, // Register Vuetify directives
+        theme: {
+        themes: {
+            light: {
+                dark: false,
+                colors: {
+                    primary: '#1976D2',
+                    secondary: '#424242',
+                    accent: '#82B1FF',
+                    error: '#FF5252',
+                    info: '#2196F3',
+                    success: '#4CAF50',
+                    warning: '#FFC107'
+                }
+            },
+            dark: {
+                dark: true,
+                colors: {
+                    primary: '#BB86FC',
+                    secondary: '#424242',
+                    accent: '#03DAC6',
+                    error: '#bf3c3c',
+                    info: '#1868a6',
+                    success: '#4CAF50',
+                    warning: '#FFC107'
+                }
+            }
+        }
+    }
 })
 
 // Create the Vue app instance

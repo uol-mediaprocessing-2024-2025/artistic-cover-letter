@@ -22,22 +22,27 @@ from collections import Counter
 
 def main():
     images = load_images_from_folder("C:/Users/Simon/Downloads/examplePhotos2/")
-    colors_1 = extract_dominant_colors(images[0], 20)
-    colors_2 = extract_dominant_colors(images[1], 20)
-    colors_3 = extract_dominant_colors(images[2], 20)
-    distance = color_scheme_distance(colors_1, colors_2)
-    print("Total distance: " + str(distance))
+    colors_1 = extract_dominant_colors(images[0])
+    colors_2 = extract_dominant_colors(images[1])
+    colors_3 = extract_dominant_colors(images[2])
+    colors_4 = extract_dominant_colors(images[3])
+    colors_5 = extract_dominant_colors(images[4])
+    #distance = color_scheme_distance(colors_1, colors_2)
+    #print("Total distance: " + str(distance))
     distance = color_scheme_distance(colors_1, colors_3)
     print("Total distance: " + str(distance))
+    distance = color_scheme_distance(colors_3, colors_4)
+    print("Total distance: " + str(distance))
+    #distance = color_scheme_distance(colors_4, colors_5)
+    #print("Total distance: " + str(distance))
 
-    for image in images:
-        dominant_colors = extract_dominant_colors(image, 20)
-        print("Dominant Colors:", dominant_colors)
-        plot_colors(dominant_colors)
+    plot_colors(colors_3)
+    plot_colors(colors_4)
 
     # todo: implement adjacency list for all images to identify pairs
 
 # Calculates the distance between two color schemes
+# Needs improvement
 def color_scheme_distance(colors_1, colors_2):
     total_distance = 0
     for index1, color1 in enumerate(colors_1):
@@ -52,13 +57,16 @@ def color_scheme_distance(colors_1, colors_2):
             if new_distance < distance:
                 distance = new_distance
         total_distance = total_distance + distance
+        print("Color distance: " + str(distance))
     return total_distance
 
 # Extracts dominant colors, with help from Bing AI
-def extract_dominant_colors(image, num_colors=20):
+def extract_dominant_colors(image, num_colors=8):
     image = image.resize((100, 100))  # Resize for performance
     image = image.convert('RGB')
-    dilated = cv2.dilate(np.array(image), circular_kernel(1)) # Dilate to reduce number of darker colors, not the best solution
+    image_array = np.asarray(image)
+    image_4bit_array = (image_array // 16) * 16 # Reduce color depth to group more shades together
+    dilated = cv2.dilate(image_4bit_array, circular_kernel(1)) # Dilate to reduce number of darker colors, not the best solution
     image = Image.fromarray(dilated)
 
     pixels = np.array(image).reshape(-1, 3)

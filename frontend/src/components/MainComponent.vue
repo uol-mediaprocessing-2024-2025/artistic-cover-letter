@@ -1,46 +1,58 @@
 <script setup>
-import {onMounted, ref, watch} from 'vue';
+import {onMounted, ref, reactive, watch} from 'vue';
 import axios from 'axios';
-import {store} from '../store'; // Import shared store to manage global state
+import {store} from '../store';
+import {themeState} from "@/views/theme.js"; // Import shared store to manage global state
 
 // Reactive references
-const fileBlob = ref(null); // Store the image as a Blob (either from upload or gallery)
-const blurredImage = ref(null); // Stores the blurred image from the backend
 const isLoading = ref(false);  // Boolean to show a loading spinner while the image is being processed
-const displayedImage = ref(null); // Handles the image currently displayed (original/blurred)
-const errorMessage = ref(null);
-const alertMessage = ref(null);
-const resolution = ref("250");
+
+const errorMessage = ref(null); // String that holds an error message
+const alertMessage = ref(null); // String that holds an alert message
+
+
+const resolution = ref("250"); // Image resolution setting
+
+// Dropshadow
 const dropshadowintensity = ref(0);
 const dropshadowradius = ref(10);
 const dropshadowcolor = ref("#000000");
+// Background bleed
 const bleedintensity = ref(0);
 const bleedradius = ref(15);
+// Inner shadow
 const shadowradius = ref(15);
 const shadowintensity = ref(0);
 const shadowcolor = ref("#000000");
+// Outlines
+const outlinewidth = ref(0);
+const outlinecolor = ref("#000000");
 
 // Text options
-
 const text = ref("Text");
 const selectedFont = ref("Impact");
 const availableFonts = ref([]);
 const weight = ref("bold");
 
-const fullImage = ref(null); //
-const layer_0 = ref(null); //
-const layer_1 = ref(null); //
-const layer_2 = ref(null); //
-const layer_3 = ref(null); //
-const layer_4 = ref(null); //
+// Image layers
+const fullImage = ref(null);
+const layer_0 = ref(null);
+const layer_1 = ref(null);
+const layer_2 = ref(null);
+const layer_3 = ref(null);
+const layer_4 = ref(null);
 
+// Photo uploads
 const newlyUploadedFiles = ref([]);
 const uploadedPhotos = ref([])
 
+// UI elements
 const photoPanel = ref(null);
+const backgroundcolor = ref("#FFFFFF");
 
 // onMounted is run when the page gets mounted in order to retrieve available fonts.
 onMounted(async () => {
+  await updatebackground()
   try {
     const response = await axios.post(`${store.apiUrl}/retrieve-fonts`, "", {});
     availableFonts.value = response.data
@@ -50,60 +62,7 @@ onMounted(async () => {
   }
 });
 
-// Handle image upload
-const handleImageUpload = (event) => {
-  const file = event.target.files[0];
-  if (file) {
-    fileBlob.value = file; // Store the uploaded file as a Blob
-    displayedImage.value = URL.createObjectURL(file); // Display the uploaded image
-    blurredImage.value = null;
-    store.photoUrls.push(displayedImage.value); // Store the uploaded image in the global store
-  }
-};
-
-// Send the uploaded image to the backend and apply a blur effect
-const applyBlur = async () => {
-  if (!fileBlob.value) return;
-
-  // Show the loading spinner while the image is being processed
-  isLoading.value = true;
-  try {
-    const formData = new FormData();
-    formData.append('file', fileBlob.value);  // Send the blob
-
-    // Make a POST request to the backend API to apply the blur effect
-    const response = await axios.post(`${store.apiUrl}/apply-blur`, formData, {
-      responseType: 'blob'  // Expect binary data (blob)
-    });
-
-    // Update the blurred image
-    blurredImage.value = URL.createObjectURL(response.data);
-    displayedImage.value = blurredImage.value;
-  } catch (error) {
-    console.error('Failed to apply blur:', error);
-  } finally {
-    isLoading.value = false;
-  }
-};
-
-// Trigger the file input dialog when the image field is clicked
-const openFileDialog = () => document.querySelector('input[type="file"]').click();
-
-// Toggle between original and blurred image
-const toggleImage = () => {
-  if (blurredImage.value && !isLoading.value) {
-    displayedImage.value = displayedImage.value === blurredImage.value ? URL.createObjectURL(fileBlob.value) : blurredImage.value;
-  }
-};
-
-// Reset image when 'X' is clicked
-const resetImage = () => {
-  fileBlob.value = null;
-  blurredImage.value = null;
-  displayedImage.value = null;
-  document.querySelector('input[type="file"]').value = '';
-};
-
+// Submits text to be processed by the backend
 const submitText = async () => {
     if (!text.valueOf().value){
     alertMessage.value = "Please type in your text.";
@@ -131,6 +90,8 @@ const submitText = async () => {
     formData.append('shadow_radius', shadowradius.valueOf().value);
     formData.append('shadow_intensity', shadowintensity.valueOf().value);
     formData.append('shadow_color', shadowcolor.valueOf().value);
+    formData.append('outline_width', outlinewidth.valueOf().value);
+    formData.append('outline_color', outlinecolor.valueOf().value);
     // I got it to work, yay
     for (const URL of uploadedPhotos.value) {
       const response = await fetch(URL);
@@ -149,6 +110,7 @@ const submitText = async () => {
   }
 }
 
+// Updates all images, called after receiving processed images from backend
 const updateImages = (imageArray) => {
   const blobArray = [];
   imageArray.forEach((base64Image, index) => {
@@ -250,6 +212,32 @@ const changeInnerShadow = async () => {
   }
 }
 
+const changeOutline = async () => {
+  if (resolution.valueOf().value > 250){
+    isLoading.value = true;
+  }
+  errorMessage.value = null;
+  try {
+    const formData = new FormData();
+    formData.append('width', outlinewidth.valueOf().value);
+    formData.append('resolution', resolution.valueOf().value);
+    formData.append('color', outlinecolor.valueOf().value);
+    formData.append('layer0_blob', await fetch(layer_0.value).then(res => res.blob()));
+    formData.append('layer1_blob', await fetch(layer_1.value).then(res => res.blob()));
+    formData.append('layer2_blob', await fetch(layer_2.value).then(res => res.blob()));
+    formData.append('layer3_blob', await fetch(layer_3.value).then(res => res.blob()));
+
+    const response = await axios.post(`${store.apiUrl}/outline`, formData, {});
+    const imageArray = response.data;
+    updateImages(imageArray);
+  } catch (error) {
+    errorMessage.value = "Internal server error.";
+    console.error("Failure:", error);
+  } finally {
+    isLoading.value = false;
+  }
+}
+
 const downloadImage = async () => {
   const link = document.createElement('a');
   link.href = fullImage.value;
@@ -294,6 +282,10 @@ const onWheel = async (event) => {
   }
 }
 
+const updatebackground = async (event) => {
+  themeState.isDark = !(parseInt(backgroundcolor.valueOf().value.slice(1), 16) > 0xAAAAAA)
+}
+
 const keyDown = async (event) => {
   const index = availableFonts.value.indexOf(selectedFont.value)
   if (event.key === 'ArrowRight') {
@@ -333,6 +325,7 @@ const keyDown = async (event) => {
       <v-text-field v-model="text" label="Enter your text" prepend-icon="mdi-format-text" @keyup.enter="submitText" :disabled="isLoading"></v-text-field>
       <v-select label="Select font" prepend-icon="mdi-format-font" :items="availableFonts" v-model="selectedFont" @wheel="onWheel" @keydown="keyDown" @update:modelValue="submitText" :disabled="isLoading"></v-select>
       <v-file-input v-model="newlyUploadedFiles" label="Upload photos" multiple accept="image/*" @change="handleFileUpload" prepend-icon="mdi-upload" :disabled="isLoading"></v-file-input>
+      <v-color-picker v-model="backgroundcolor" @update:model-value="updatebackground" class="ma-2" :disabled="isLoading" show-swatches mode="rgb" :swatches="[['#000000', '#FFFFFF']]"></v-color-picker>
       <v-expansion-panels v-model="photoPanel">
         <v-expansion-panel :title="'Your photos (' + uploadedPhotos.length + ')'">
           <v-expansion-panel-text>
@@ -350,7 +343,7 @@ const keyDown = async (event) => {
       <v-card-text>
             <!-- Wrapper div for positioning the loading overlay -->
               <div class="image-wrapper">
-              <v-img v-if="fullImage" :src="fullImage" max-height="450" :disabled="!fullImage">
+              <v-img v-if="fullImage" :src="fullImage" max-height="450" :disabled="!fullImage" :style="{ backgroundColor: backgroundcolor.valueOf()}">
                 </v-img>
                 <div class="d-flex align-center justify-center" v-else></div>
               <!-- Loading overlay with centered spinner -->
@@ -382,11 +375,10 @@ const keyDown = async (event) => {
             </v-slider>
             <v-slider v-model="dropshadowradius" label="Radius" :step="1" :max=30 :min=1 @end="changeDropshadow" :disabled="isLoading">
               <template v-slot:append>
-                <v-text-field v-model="dropshadowradius" density="compact" style="width: 100px" type="number" hide-details single-line @change="changeDropshadow" :disabled="isLoading"
-                ></v-text-field>
+                <v-text-field v-model="dropshadowradius" density="compact" style="width: 100px" type="number" hide-details single-line @change="changeDropshadow" :disabled="isLoading"></v-text-field>
               </template>
             </v-slider>
-            <v-color-picker v-model="dropshadowcolor" hide-canvas @update:model-value="changeDropshadow" class="ma-2" :disabled="isLoading" show-swatches mode="rgb" :swatches="[['#000000', '#FFFFFF']]"></v-color-picker>
+            <v-color-picker v-model="dropshadowcolor" @update:model-value="changeDropshadow" class="ma-2" :disabled="isLoading" show-swatches mode="rgb" :swatches="[['#000000', '#FFFFFF']]"></v-color-picker>
           </v-expansion-panel-text>
         </v-expansion-panel>
 
@@ -400,8 +392,7 @@ const keyDown = async (event) => {
             </v-slider>
             <v-slider v-model="bleedradius" label="Radius" :step="1" :max=35 :min=1 @end="changeBackgroundBleed" :disabled="isLoading">
               <template v-slot:append>
-                <v-text-field v-model="bleedradius" density="compact" style="width: 100px" type="number" hide-details single-line @change="changeBackgroundBleed" :disabled="isLoading"
-                ></v-text-field>
+                <v-text-field v-model="bleedradius" density="compact" style="width: 100px" type="number" hide-details single-line @change="changeBackgroundBleed" :disabled="isLoading"></v-text-field>
               </template>
             </v-slider>
           </v-expansion-panel-text>
@@ -411,8 +402,7 @@ const keyDown = async (event) => {
           <v-expansion-panel-text>
             <v-slider v-model="shadowintensity" label="Intensity" :step="1" :max=100 :min=0 @end="changeInnerShadow" :disabled="isLoading">
               <template v-slot:append>
-                <v-text-field v-model="shadowintensity" density="compact" style="width: 100px" type="number" hide-details single-line @change="changeInnerShadow" :disabled="isLoading"
-                ></v-text-field>
+                <v-text-field v-model="shadowintensity" density="compact" style="width: 100px" type="number" hide-details single-line @change="changeInnerShadow" :disabled="isLoading"></v-text-field>
               </template>
             </v-slider>
             <v-slider v-model="shadowradius" label="Radius" :step="1" :max=30 :min=1 @end="changeInnerShadow" :disabled="isLoading">
@@ -425,8 +415,19 @@ const keyDown = async (event) => {
           </v-expansion-panel-text>
         </v-expansion-panel>
 
+        <v-expansion-panel title="Outline">
+          <v-expansion-panel-text>
+            <v-slider v-model="outlinewidth" label="Width" :step="1" :max=100 :min=0 @end="changeOutline" :disabled="isLoading">
+              <template v-slot:append>
+                <v-text-field v-model="outlinewidth" density="compact" style="width: 100px" type="number" hide-details single-line @change="changeOutline" :disabled="isLoading"></v-text-field>
+              </template>
+            </v-slider>
+            <v-color-picker v-model="outlinecolor" hide-canvas @update:model-value="changeOutline" class="ma-2" :disabled="isLoading" show-swatches mode="rgb" :swatches="[['#000000', '#FFFFFF']]"></v-color-picker>
+          </v-expansion-panel-text>
+        </v-expansion-panel>
+
       </v-expansion-panels>
-      <!-- Layers for debugging
+      <!-- debug
       <v-expansion-panels>
         <v-expansion-panel title="Layers (Debug)">
           <v-expansion-panel-text>
@@ -467,6 +468,7 @@ const keyDown = async (event) => {
 
 
 <style scoped>
+
 .main-container {
   overflow: auto;
 }
@@ -495,18 +497,6 @@ const keyDown = async (event) => {
 
 .v-btn{
   margin: 5px;
-}
-
-.image-placeholder {
-  cursor: pointer;
-  height: 300px;
-  background-color: #f5f5f5;
-  border: 1px dashed #ccc;
-  border-radius: 8px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: #aaa;
 }
 
 .loading-overlay {

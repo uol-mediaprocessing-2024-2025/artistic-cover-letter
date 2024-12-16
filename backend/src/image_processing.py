@@ -67,7 +67,7 @@ def calcInnerShadow(layer2, radius, intensity, color, resolution):
     correctedradius = int(radius*(resolution/600))
     r, g, b, a = layer2.split()
     r2 = Image.fromarray(np.full((r.height,r.width), int(color[1:3], 16), dtype=np.uint8))
-    g2 = Image.fromarray(np.full((g.height, r.width), int(color[3:5], 16), dtype=np.uint8))
+    g2 = Image.fromarray(np.full((g.height, g.width), int(color[3:5], 16), dtype=np.uint8))
     b2 = Image.fromarray(np.full((b.height, b.width), int(color[5:7], 16), dtype=np.uint8))
     inverted_alpha = ImageOps.invert(a)
     blurred_alpha = inverted_alpha.filter(ImageFilter.GaussianBlur(radius=correctedradius))
@@ -76,6 +76,23 @@ def calcInnerShadow(layer2, radius, intensity, color, resolution):
     clipped_alpha = np.clip(multiplied_alpha, 0, 255).astype(np.uint8)
     clipped_alpha_image = Image.fromarray(clipped_alpha, 'L')
 
+    result = Image.merge("RGBA", (r2, g2, b2, clipped_alpha_image))
+    return result
+
+def calcOutline(layer2, width, color, resolution):
+    if width < 1:
+        return Image.new('RGBA', layer2.size, (0, 0, 0, 0))
+    print("Applying outline with width " + str(width))
+    correctedwidth = int(width*(resolution/2000))
+    r, g, b, a = layer2.split()
+    r2 = Image.fromarray(np.full((r.height,r.width), int(color[1:3], 16), dtype=np.uint8))
+    g2 = Image.fromarray(np.full((g.height, g.width), int(color[3:5], 16), dtype=np.uint8))
+    b2 = Image.fromarray(np.full((b.height, b.width), int(color[5:7], 16), dtype=np.uint8))
+    dilated = cv2.dilate(np.array(a), circular_kernel(correctedwidth), iterations=1)
+    inverted_alpha = ImageOps.invert(a)
+    multiplied = np.array(dilated) * (np.array(inverted_alpha)/255)
+    clipped_alpha = np.clip(multiplied, 0, 255).astype(np.uint8)
+    clipped_alpha_image = Image.fromarray(clipped_alpha, 'L')
     result = Image.merge("RGBA", (r2, g2, b2, clipped_alpha_image))
     return result
 
