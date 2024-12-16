@@ -353,7 +353,7 @@ const keyDown = async (event) => {
             </div>
       </v-card-text>
       <!-- Bing AI helped me find the right style settings for the p tag.-->
-      <div v-if="!fullImage"><p :style="{ fontWeight: weight, fontFamily: selectedFont, fontSize: '5vw', maxHeight: '450px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }"> {{text}} </p></div>
+      <div v-if="!fullImage"><p :style="{ fontWeight: weight, fontFamily: selectedFont, fontSize: '5vw', maxHeight: '450px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center' , backgroundColor: backgroundcolor.valueOf()}"> {{text}} </p></div>
       <v-alert v-if="alertMessage" type="info"> {{ alertMessage }}</v-alert>
       <v-alert v-if="errorMessage && !isLoading" type="error"> {{ errorMessage }} </v-alert>
     </v-card>
