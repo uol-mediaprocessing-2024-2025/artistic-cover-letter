@@ -17,6 +17,7 @@ const resolution = ref("250"); // Image resolution setting
 const dropshadowintensity = ref(50);
 const dropshadowradius = ref(15);
 const dropshadowcolor = ref("#FFFFFF");
+const dropshadowcolorauto = ref(true);
 // Background bleed
 const bleedintensity = ref(50);
 const bleedradius = ref(15);
@@ -24,6 +25,7 @@ const bleedradius = ref(15);
 const shadowradius = ref(15);
 const shadowintensity = ref(25);
 const shadowcolor = ref("#000000");
+const shadowcolorauto = ref(true);
 // Outlines
 const outlinewidth = ref(0);
 const outlinecolor = ref("#000000");
@@ -288,9 +290,37 @@ const updatebackground = async (event) => {
   const g = parseInt(hex.slice(2, 4), 16)
   const b = parseInt(hex.slice(4, 6), 16)
   if (r < 140 & g < 140 & b < 140){
-    themeState.isDark = true;
+    if (!themeState.isDark){
+      themeState.isDark = true;
+      await updateShadows();
+    }
   } else {
-    themeState.isDark = false;
+    if (themeState.isDark){
+      themeState.isDark = false;
+      await updateShadows();
+    }
+  }
+}
+
+async function updateShadows() {
+  if (themeState.isDark) {
+    if (dropshadowcolorauto){
+      dropshadowcolor.value = "#000000"
+      await changeDropshadow()
+    }
+    if (shadowcolorauto){
+      shadowcolor.value = "#FFFFFF"
+      await changeInnerShadow()
+    }
+  } else {
+    if (dropshadowcolorauto){
+      shadowcolor.value = "#000000"
+      await changeInnerShadow()
+    }
+    if (shadowcolorauto){
+      dropshadowcolor.value = "#FFFFFF"
+      await changeDropshadow()
+    }
   }
 }
 
@@ -386,7 +416,8 @@ const keyDown = async (event) => {
                 <v-text-field v-model="dropshadowradius" density="compact" style="width: 100px" type="number" hide-details single-line @change="changeDropshadow" :disabled="isLoading"></v-text-field>
               </template>
             </v-slider>
-            <v-color-picker v-model="dropshadowcolor" @update:model-value="changeDropshadow" class="ma-2" :disabled="isLoading" show-swatches mode="rgb" :swatches="[['#000000', '#FFFFFF']]"></v-color-picker>
+            <v-checkbox v-model="dropshadowcolorauto" @update:model-value="updateShadows()" label="Adjust color to background"></v-checkbox>
+            <v-color-picker v-model="dropshadowcolor" @update:model-value="changeDropshadow" class="ma-2" :disabled="isLoading || dropshadowcolorauto" hide-canvas :show-swatches="!dropshadowcolorauto" :hide-inputs="dropshadowcolorauto" mode="rgb" :swatches="[['#000000', '#FFFFFF']]"></v-color-picker>
           </v-expansion-panel-text>
         </v-expansion-panel>
 
@@ -419,7 +450,8 @@ const keyDown = async (event) => {
                 ></v-text-field>
               </template>
             </v-slider>
-            <v-color-picker v-model="shadowcolor" hide-canvas @update:model-value="changeInnerShadow" class="ma-2" :disabled="isLoading" show-swatches mode="rgb" :swatches="[['#000000', '#FFFFFF']]"></v-color-picker>
+            <v-checkbox v-model="shadowcolorauto" @update:model-value="updateShadows()" label="Adjust color to background"></v-checkbox>
+            <v-color-picker v-model="shadowcolor" @update:model-value="changeInnerShadow" class="ma-2" :disabled="isLoading || shadowcolorauto" hide-canvas :show-swatches="!shadowcolorauto" :hide-inputs="shadowcolorauto" mode="rgb" :swatches="[['#000000', '#FFFFFF']]"></v-color-picker>
           </v-expansion-panel-text>
         </v-expansion-panel>
 
