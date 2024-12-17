@@ -182,11 +182,7 @@ async def outline(
     layer3 = Image.open(io.BytesIO(await layer3_blob.read()))
 
     layer4 = calcOutline(layer2, width, color, resolution)
-    plt.imshow(layer2)
-    plt.show()
     full_image = fullComposite(layer0, layer1, layer2, layer3, layer4)
-    plt.imshow(full_image)
-    plt.show()
     return JSONResponse(content=[
         encodeImage(full_image),
         encodeImage(layer0),
