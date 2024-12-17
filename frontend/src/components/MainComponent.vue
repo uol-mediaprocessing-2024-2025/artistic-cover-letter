@@ -49,6 +49,7 @@ const layer_4 = ref(null);
 // Photo uploads
 const newlyUploadedFiles = ref([]);
 const uploadedPhotos = ref([])
+const selectedPhotos = ref([]);
 
 // UI elements
 const photoPanel = ref(null);
@@ -76,6 +77,10 @@ const submitText = async () => {
     alertMessage.value = "Please upload some photos to continue.";
     return;
   }
+  if (selectedPhotos.value.every(value => value === false)){
+    alertMessage.value = "Please select some photos to continue.";
+    return
+  }
   isLoading.value = true;
   errorMessage.value = null;
   if (resolution.valueOf().value > 1600) resolution.value = 1600;
@@ -97,10 +102,13 @@ const submitText = async () => {
     formData.append('outline_width', outlinewidth.valueOf().value);
     formData.append('outline_color', outlinecolor.valueOf().value);
     // I got it to work, yay
-    for (const URL of uploadedPhotos.value) {
-      const response = await fetch(URL);
-      const blob = await response.blob();
-      formData.append('photos', blob, `image.jpg`)
+    console.log(selectedPhotos);
+    for (const [index, URL] of uploadedPhotos.value.entries()) {
+      if (selectedPhotos.value[index]){
+        const response = await fetch(URL);
+        const blob = await response.blob();
+        formData.append('photos', blob, `image.jpg`)
+      }
     }
     const response = await axios.post(`${store.apiUrl}/submit-text`, formData, {});
   const imageArray = response.data;
@@ -273,6 +281,7 @@ const saveToGallery = async () => {
 const handleFileUpload = async() => {
   newlyUploadedFiles.value.forEach(file => {
     uploadedPhotos.value.push(URL.createObjectURL(new Blob([file], { type: 'image/jpeg' })));
+    selectedPhotos.value.push(true);
   });
   try {
     await submitText()
@@ -320,6 +329,16 @@ const updatebackground = async (event) => {
   }
 }
 
+const keyDown = async (event) => {
+  const index = availableFonts.value.indexOf(selectedFont.value)
+  if (event.key === 'ArrowRight') {
+      selectedFont.value = availableFonts.value[(index+1)%availableFonts.value.length];
+  }
+  if (event.key === 'ArrowLeft'){
+    selectedFont.value = availableFonts.value[(index+availableFonts.value.length-1)%availableFonts.value.length];
+  }
+}
+
 async function updateShadows() {
   if (themeState.isDark) {
     if (dropshadowcolorauto){
@@ -342,14 +361,17 @@ async function updateShadows() {
   }
 }
 
-const keyDown = async (event) => {
-  const index = availableFonts.value.indexOf(selectedFont.value)
-  if (event.key === 'ArrowRight') {
-      selectedFont.value = availableFonts.value[(index+1)%availableFonts.value.length];
-  }
-  if (event.key === 'ArrowLeft'){
-    selectedFont.value = availableFonts.value[(index+availableFonts.value.length-1)%availableFonts.value.length];
-  }
+function deletePhoto(index){
+  console.log("Delete Photo called");
+  uploadedPhotos.value.splice(index, 1);
+  selectedPhotos.value.splice(index, 1);
+  console.log(uploadedPhotos);
+  console.log(selectedPhotos);
+}
+
+function selectAllPhotos(boolean){
+  selectedPhotos.value.fill(boolean);
+  submitText();
 }
 </script>
 
@@ -404,11 +426,20 @@ const keyDown = async (event) => {
             <v-container>
               <v-row>
                 <v-col  v-for="(photo, index) in uploadedPhotos" :key="index" md="2">
-                <v-img :src="photo"></v-img>
+                  <v-card :class="{'deselected': !selectedPhotos[index]}" :disabled="isLoading">
+                    <v-img :src="photo">
+                      <v-btn icon density="compact" class="reset-btn ma-2" @click="deletePhoto(index)" color="error">
+                        <v-icon small>mdi-close</v-icon>
+                      </v-btn>
+                      <v-checkbox v-model="selectedPhotos[index]" @change="submitText" class="toggle ma-2" hide-details :disabled="isLoading"></v-checkbox>
+                    </v-img>
+                  </v-card>
                 </v-col>
               </v-row>
             </v-container>
-            <v-btn @click="deleteAllPhotos" :disabled="isLoading">Delete all photos</v-btn>
+            <v-btn @click="selectAllPhotos(true)" :disabled="isLoading">Select all photos</v-btn>
+            <v-btn @click="selectAllPhotos(false)" :disabled="isLoading">Deselect all photos</v-btn>
+            <v-btn @click="deleteAllPhotos" :disabled="isLoading" color="error">Delete all photos</v-btn>
           </v-expansion-panel-text>
         </v-expansion-panel>
       </v-expansion-panels>
@@ -581,7 +612,30 @@ const keyDown = async (event) => {
   display: flex;
   justify-content: center;
   align-items: center;
-  border-radius: 8px;
+  border-radius: 4px;
+}
+
+.reset-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}
+
+.toggle {
+  position: absolute;
+  bottom: -10px;
+  left: 0px;
+  padding-bottom: 0px;
+  margin-bottom: 0px;
+  color: #FFFFFF;
+}
+
+.deselected {
+  opacity: 0.2;
+}
+
+.v-img {
+  border-radius: 4px;
 }
 
 @media (max-width: 768px) {
