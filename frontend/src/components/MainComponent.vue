@@ -13,8 +13,6 @@ const alertMessage = ref(null); // String that holds an alert message
 
 const resolution = ref("250"); // Image resolution setting
 
-const backgroundcolorpopup = ref(false);
-
 // Dropshadow
 const dropshadowintensity = ref(50);
 const dropshadowradius = ref(15);
@@ -403,12 +401,12 @@ function selectAllPhotos(boolean){
       <v-text-field v-model="text" label="Enter your text" prepend-icon="mdi-format-text" @keyup.enter="submitText" :disabled="isLoading"></v-text-field>
       <v-select label="Select font" prepend-icon="mdi-format-font" :items="availableFonts" v-model="selectedFont" @wheel="onWheel" @keydown="keyDown" @update:modelValue="submitText" :disabled="isLoading"></v-select>
 
-      <v-btn prepend-icon="format-color-fill" @click="backgroundcolorpopup = !backgroundcolorpopup"> Select background color</v-btn>
-
-
-      <div v-if="backgroundcolorpopup">
-      <v-color-picker v-model="backgroundcolor" @update:model-value="updatebackground" class="ma-2" :disabled="isLoading" show-swatches mode="rgb" :swatches="[['#000000', '#FFFFFF']]"></v-color-picker>
-      </div>
+      <v-menu location="bottom" :close-on-content-click="false">
+        <template v-slot:activator="{ props }">
+          <v-btn v-bind="props"> Pick background color </v-btn>
+        </template>
+        <v-color-picker v-model="backgroundcolor" @update:model-value="updatebackground" class="ma-2" :disabled="isLoading" show-swatches mode="rgb" :swatches="[['#000000', '#FFFFFF']]"></v-color-picker>
+      </v-menu>
 
       <!-- Bing AI helped me find the right style settings for the p tag.-->
       <div v-if="!fullImage"><p :style="{ fontWeight: weight, fontFamily: selectedFont, fontSize: '5vw', maxHeight: '450px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center' , backgroundColor: backgroundcolor.valueOf()}"> {{text}} </p></div>
