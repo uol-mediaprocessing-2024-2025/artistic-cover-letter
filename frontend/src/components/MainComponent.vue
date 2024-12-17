@@ -13,6 +13,8 @@ const alertMessage = ref(null); // String that holds an alert message
 
 const resolution = ref("250"); // Image resolution setting
 
+const backgroundcolorpopup = ref(false);
+
 // Dropshadow
 const dropshadowintensity = ref(50);
 const dropshadowradius = ref(15);
@@ -71,7 +73,7 @@ const submitText = async () => {
     return;
   }
   if (uploadedPhotos.value.length === 0){
-    alertMessage.value = "Please upload some photos.";
+    alertMessage.value = "Please upload some photos to continue.";
     return;
   }
   isLoading.value = true;
@@ -133,6 +135,10 @@ const updateImages = (imageArray) => {
 }
 
 const changeDropshadow = async () => {
+  if (uploadedPhotos.value.length === 0){
+    alertMessage.value = "Please upload some photos to continue.";
+    return;
+  }
   if (resolution.valueOf().value > 250) {
     isLoading.value = true;
   }
@@ -161,6 +167,10 @@ const changeDropshadow = async () => {
 }
 
 const changeBackgroundBleed = async () => {
+  if (uploadedPhotos.value.length === 0){
+    alertMessage.value = "Please upload some photos to continue.";
+    return;
+  }
   if (resolution.valueOf().value > 250){
     isLoading.value = true;
   }
@@ -188,6 +198,10 @@ const changeBackgroundBleed = async () => {
 }
 
 const changeInnerShadow = async () => {
+  if (uploadedPhotos.value.length === 0){
+    alertMessage.value = "Please upload some photos to continue.";
+    return;
+  }
   if (resolution.valueOf().value > 250){
     isLoading.value = true;
   }
@@ -215,6 +229,10 @@ const changeInnerShadow = async () => {
 }
 
 const changeOutline = async () => {
+  if (uploadedPhotos.value.length === 0){
+    alertMessage.value = "Please upload some photos to continue.";
+    return;
+  }
   if (resolution.valueOf().value > 250){
     isLoading.value = true;
   }
@@ -356,14 +374,30 @@ const keyDown = async (event) => {
     <v-card elevation="2" class="pa-4 card-container">
       <!-- Card title -->
       <v-card-title class="d-flex align-center">
-        <v-icon class="mr-2">mdi-pencil</v-icon>
-        <h3>&nbsp;Create</h3>
+        <v-icon class="mr-2">mdi-format-font</v-icon>
+        <h3>&nbsp;Text</h3>
       </v-card-title>
       <!-- Card content -->
       <v-text-field v-model="text" label="Enter your text" prepend-icon="mdi-format-text" @keyup.enter="submitText" :disabled="isLoading"></v-text-field>
       <v-select label="Select font" prepend-icon="mdi-format-font" :items="availableFonts" v-model="selectedFont" @wheel="onWheel" @keydown="keyDown" @update:modelValue="submitText" :disabled="isLoading"></v-select>
-      <v-file-input v-model="newlyUploadedFiles" label="Upload photos" multiple accept="image/*" @change="handleFileUpload" prepend-icon="mdi-upload" :disabled="isLoading"></v-file-input>
+
+      <v-btn prepend-icon="format-color-fill" @click="backgroundcolorpopup = !backgroundcolorpopup"> Select background color</v-btn>
+
+
+      <div v-if="backgroundcolorpopup">
       <v-color-picker v-model="backgroundcolor" @update:model-value="updatebackground" class="ma-2" :disabled="isLoading" show-swatches mode="rgb" :swatches="[['#000000', '#FFFFFF']]"></v-color-picker>
+      </div>
+
+      <!-- Bing AI helped me find the right style settings for the p tag.-->
+      <div v-if="!fullImage"><p :style="{ fontWeight: weight, fontFamily: selectedFont, fontSize: '5vw', maxHeight: '450px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center' , backgroundColor: backgroundcolor.valueOf()}"> {{text}} </p></div>
+    </v-card>
+    <!-- PHOTOS -->
+    <v-card elevation="2" class="pa-4 card-container">
+      <v-card-title class="d-flex align-center">
+        <v-icon class="mr-2">mdi-image-multiple</v-icon>
+        <h3>&nbsp;Photos</h3>
+      </v-card-title>
+      <v-file-input v-model="newlyUploadedFiles" label="Upload photos" multiple accept="image/*" @change="handleFileUpload" prepend-icon="mdi-upload" :disabled="isLoading"></v-file-input>
       <v-expansion-panels v-model="photoPanel">
         <v-expansion-panel :title="'Your photos (' + uploadedPhotos.length + ')'">
           <v-expansion-panel-text>
@@ -378,24 +412,22 @@ const keyDown = async (event) => {
           </v-expansion-panel-text>
         </v-expansion-panel>
       </v-expansion-panels>
-      <v-card-text>
-            <!-- Wrapper div for positioning the loading overlay -->
-              <div class="image-wrapper">
-              <v-img v-if="fullImage" :src="fullImage" max-height="450" :disabled="!fullImage" :style="{ backgroundColor: backgroundcolor.valueOf()}">
-                </v-img>
-                <div class="d-flex align-center justify-center" v-else></div>
-              <!-- Loading overlay with centered spinner -->
-              <div v-if="isLoading" class="loading-overlay">
-                <v-progress-circular indeterminate color="primary" size="50"></v-progress-circular>
-              </div>
-            </div>
-      </v-card-text>
-      <!-- Bing AI helped me find the right style settings for the p tag.-->
-      <div v-if="!fullImage"><p :style="{ fontWeight: weight, fontFamily: selectedFont, fontSize: '5vw', maxHeight: '450px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center' , backgroundColor: backgroundcolor.valueOf()}"> {{text}} </p></div>
+    </v-card>
+    <!-- VIEWPORT -->
+    <v-card elevation="2" class="pa-4 card-container">
+        <!-- Wrapper div for positioning the loading overlay -->
+        <div class="image-wrapper">
+          <v-img v-if="fullImage" :src="fullImage" max-height="450" :disabled="!fullImage" :style="{ backgroundColor: backgroundcolor.valueOf()}">
+          </v-img>
+          <div class="d-flex align-center justify-center" v-else></div>
+          <!-- Loading overlay with centered spinner -->
+          <div v-if="isLoading" class="loading-overlay">
+            <v-progress-circular indeterminate color="primary" size="50"></v-progress-circular>
+          </div>
+        </div>
       <v-alert v-if="alertMessage" type="info"> {{ alertMessage }}</v-alert>
       <v-alert v-if="errorMessage && !isLoading" type="error"> {{ errorMessage }} </v-alert>
     </v-card>
-
     <!-- EFFECTS -->
     <v-card elevation="2" class="pa-4 card-container">
       <v-card-title class="d-flex align-center">

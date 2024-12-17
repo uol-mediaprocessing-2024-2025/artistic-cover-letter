@@ -31,11 +31,12 @@ def generate_letter_layer(text, font, resolution, images):
         blank_image = Image.alpha_composite(blank_image, next_letter)
 
     # Automatic padding
+    padding = 0.8
     bbox = blank_image.getbbox()
-    new_width = (bbox[3] - bbox[1])+resolution
-    new_height = (bbox[2] - bbox[0])+resolution
-    x_offset = -bbox[0] + int(resolution/2)
-    y_offset = -bbox[1] + int(resolution/2)
+    new_width = (bbox[3] - bbox[1])+int(resolution*padding)
+    new_height = (bbox[2] - bbox[0])+int(resolution*padding)
+    x_offset = -bbox[0] + int(padding*resolution/2)
+    y_offset = -bbox[1] + int(padding*resolution/2)
 
     pasted_image = Image.new('RGBA',(new_height, new_width), (0, 0, 0, 0,))
     pasted_image.paste(blank_image, (x_offset, y_offset))
