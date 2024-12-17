@@ -30,7 +30,7 @@ def calcDropshadow(layer_2, radius, intensity, color, resolution):
 
     # Handle dropshadow with Alpha channel and set all other channels to black
     r, g, b, a = layer_2.split()
-    dilated = cv2.dilate(np.array(a), circular_kernel(int(correctedradius / 2)), iterations=1)
+    dilated = cv2.dilate(np.array(a), circular_kernel(int(correctedradius / 4)), iterations=1)
     blurred = cv2.GaussianBlur(dilated, (correctedradius * 2 + 1, correctedradius * 2 + 1), 0)
     dimmed = np.clip(blurred * (intensity/100), 0, 255).astype(np.uint8)
     red = np.array(r)

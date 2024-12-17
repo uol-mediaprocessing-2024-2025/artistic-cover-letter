@@ -14,15 +14,15 @@ const alertMessage = ref(null); // String that holds an alert message
 const resolution = ref("250"); // Image resolution setting
 
 // Dropshadow
-const dropshadowintensity = ref(0);
-const dropshadowradius = ref(10);
-const dropshadowcolor = ref("#000000");
+const dropshadowintensity = ref(50);
+const dropshadowradius = ref(15);
+const dropshadowcolor = ref("#FFFFFF");
 // Background bleed
-const bleedintensity = ref(0);
+const bleedintensity = ref(50);
 const bleedradius = ref(15);
 // Inner shadow
 const shadowradius = ref(15);
-const shadowintensity = ref(0);
+const shadowintensity = ref(25);
 const shadowcolor = ref("#000000");
 // Outlines
 const outlinewidth = ref(0);
@@ -390,7 +390,7 @@ const keyDown = async (event) => {
                 ></v-text-field>
               </template>
             </v-slider>
-            <v-slider v-model="bleedradius" label="Radius" :step="1" :max=35 :min=1 @end="changeBackgroundBleed" :disabled="isLoading">
+            <v-slider v-model="bleedradius" label="Radius" :step="1" :max=30 :min=1 @end="changeBackgroundBleed" :disabled="isLoading">
               <template v-slot:append>
                 <v-text-field v-model="bleedradius" density="compact" style="width: 100px" type="number" hide-details single-line @change="changeBackgroundBleed" :disabled="isLoading"></v-text-field>
               </template>
