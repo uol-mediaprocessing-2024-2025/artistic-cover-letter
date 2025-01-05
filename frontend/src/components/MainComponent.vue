@@ -3,6 +3,7 @@ import {onMounted, ref, reactive, watch} from 'vue';
 import axios from 'axios';
 import {store} from '../store';
 import {themeState} from "@/views/theme.js"; // Import shared store to manage global state
+import EditorComponent from "@/components/EditorComponent.vue";
 
 // Reactive references
 const isLoading = ref(false);  // Boolean to show a loading spinner while the image is being processed
@@ -52,6 +53,8 @@ const selectedPhotos = ref([]);
 // UI elements
 const photoPanel = ref(null);
 const backgroundcolor = ref("#FFFFFF");
+const editorDialog = ref(null);
+const editorIndex = ref(null);
 
 // onMounted is run when the page gets mounted in order to retrieve available fonts.
 onMounted(async () => {
@@ -371,6 +374,11 @@ function selectAllPhotos(boolean){
   selectedPhotos.value.fill(boolean);
   submitText();
 }
+
+function editPhoto(index){
+  editorIndex.valueOf().value = index;
+  editorDialog.valueOf().value = true;
+}
 </script>
 
 <script>
@@ -428,6 +436,9 @@ function selectAllPhotos(boolean){
                     <v-img :src="photo">
                       <v-btn icon density="compact" class="reset-btn ma-2" @click="deletePhoto(index)" color="error">
                         <v-icon small>mdi-close</v-icon>
+                      </v-btn>
+                      <v-btn icon density="compact" class="edit-btn ma-2" @click="editPhoto(index)" color="accent">
+                        <v-icon small>mdi-image-edit</v-icon>
                       </v-btn>
                       <v-checkbox v-model="selectedPhotos[index]" @change="submitText" class="toggle ma-2" hide-details :disabled="isLoading"></v-checkbox>
                     </v-img>
@@ -562,6 +573,17 @@ function selectAllPhotos(boolean){
       <v-btn @click="saveToGallery" :disabled="!fullImage">Save to Gallery</v-btn>
     </v-card>
   </v-container>
+
+  <v-dialog v-model="editorDialog" max-width="600px">
+    <v-card>
+      <v-card-title class="headline">Image Editor</v-card-title>
+        <v-card-text>
+          <EditorComponent  :image-blob="uploadedPhotos[editorIndex]"/>
+        </v-card-text>
+      <v-card-actions>
+        <v-spacer></v-spacer>
+        <v-btn color="green darken-1" @click="editorDialog = false">Close</v-btn> </v-card-actions> </v-card>
+  </v-dialog>
 </template>
 
 
