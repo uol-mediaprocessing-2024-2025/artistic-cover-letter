@@ -21,10 +21,9 @@ import base64
 def generate_letter_layer(text, font, resolution, images):
     print("Generating letters with text " + str(text) + " and resolution " + str(resolution))
     blank_image, letters, coordinate_x = generate_letter_mask(text, font, resolution)
-    textured_letters = []
-    for index, image in enumerate(letters):
-        textured = texture_letter(images[index%len(images)], image)
-        textured_letters.append(textured)
+
+    textured_letters = [texture_letter(images[index % len(images)], image) for index, image in enumerate(letters)]
+
     for index, image in enumerate(textured_letters):
         next_letter = Image.new("RGBA", blank_image.size)
         next_letter.paste(image, (coordinate_x[index], 0))
@@ -104,8 +103,7 @@ def texture_letter(image, letter):
     # bbox will be none if the letter is empty
     if bbox is None:
         return Image.new('RGBA', image.size, (0, 0, 0, 0))
-    letter_width = bbox[2] - bbox[0]
-    letter_height = bbox[3] - bbox[1]
+    letter_width, letter_height = bbox[2] - bbox[0], bbox[3] - bbox[1]
 
     # Calculate aspect ratio of the image
     image_aspect_ratio = image.width / image.height
@@ -142,7 +140,6 @@ def get_fonts():
     font_families = []
     for font in font_files:
         font_name = fontmanager.FontProperties(fname=font).get_name()
-        print(font_name)
         if font_name not in font_families:
             font_families.append(font_name)
     return sorted(font_files), sorted(font_families)

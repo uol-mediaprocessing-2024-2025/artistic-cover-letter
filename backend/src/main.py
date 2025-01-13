@@ -1,5 +1,6 @@
 import base64
 import json
+from concurrent.futures import ThreadPoolExecutor
 from typing import List
 
 import numpy
@@ -64,14 +65,12 @@ async def submit_text(
 
     full = fullComposite(layer0, layer1, layer2, layer3, layer4)
 
-    return JSONResponse(content=[
-        encodeImage(full),
-        encodeImage(layer0),
-        encodeImage(layer1),
-        encodeImage(layer2),
-        encodeImage(layer3),
-        encodeImage(layer4),
-    ])
+    images_to_encode = [full, layer0, layer1, layer2, layer3, layer4]
+
+    with ThreadPoolExecutor() as executor:
+        encoded_images = list(executor.map(encodeImage, images_to_encode))
+
+    return JSONResponse(content=encoded_images)
 
 @app.post("/background-bleed")
 async def background_bleed(
