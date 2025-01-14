@@ -4,6 +4,7 @@ import axios from 'axios';
 import {store} from '../store';
 import {themeState} from "@/views/theme.js"; // Import shared store to manage global state
 import EditorComponent from "@/components/EditorComponent.vue";
+import {green, red} from "vuetify/util/colors";
 
 // Reactive references
 const isLoading = ref(false);  // Boolean to show a loading spinner while the image is being processed
@@ -53,6 +54,7 @@ const selectedPhotos = ref([]);
 // UI elements
 const photoPanel = ref(null);
 const backgroundcolor = ref("#FFFFFF");
+const suggestedbackgroundcolors = ref(["#222222","#666666","#BBBBBB"]);
 const editorDialog = ref(null);
 const editorIndex = ref(null);
 
@@ -312,7 +314,7 @@ const onWheel = async (event) => {
   }
 }
 
-const updatebackground = async (event) => {
+const updatebackground = async () => {
   const hex = backgroundcolor.valueOf().value.replace(/^#/, '');
   const r = parseInt(hex.slice(0, 2), 16)
   const g = parseInt(hex.slice(2, 4), 16)
@@ -411,10 +413,17 @@ function editPhoto(index){
 
       <v-menu location="bottom" :close-on-content-click="false">
         <template v-slot:activator="{ props }">
-          <v-btn v-bind="props"> Pick background color </v-btn>
+          <v-btn v-bind="props"> Pick color </v-btn>
         </template>
         <v-color-picker v-model="backgroundcolor" @update:model-value="updatebackground" class="ma-2" :disabled="isLoading" show-swatches mode="rgb" :swatches="[['#000000', '#FFFFFF']]"></v-color-picker>
       </v-menu>
+      <v-btn @click="() =>{backgroundcolor = '#FFFFFF'; updatebackground() }"> Set <div class="color-swatch" :style="{ backgroundColor: '#FFFFFF' }"></div></v-btn>
+      <v-btn @click="() =>{backgroundcolor = '#000000'; updatebackground() }"> Set <div class="color-swatch" :style="{ backgroundColor: '#000000' }"></div></v-btn>
+      <v-btn
+          v-for="suggestedbackgroundcolor in suggestedbackgroundcolors"
+          @click="() =>{backgroundcolor = suggestedbackgroundcolor; updatebackground() }"> Set
+          <div class="color-swatch" :style="{ backgroundColor: suggestedbackgroundcolor }"></div>
+      </v-btn>
 
       <!-- Bing AI helped me find the right style settings for the p tag.-->
       <div v-if="!fullImage"><p :style="{ fontWeight: weight, fontFamily: selectedFont, fontSize: '5vw', maxHeight: '450px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center' , backgroundColor: backgroundcolor.valueOf()}"> {{text}} </p></div>
@@ -620,6 +629,13 @@ function editPhoto(index){
 
 .v-btn{
   margin: 5px;
+}
+
+.color-swatch {
+  width: 20px;
+  height: 20px;
+  margin-left: 8px;
+  border: 1px solid #000000;
 }
 
 .loading-overlay {
