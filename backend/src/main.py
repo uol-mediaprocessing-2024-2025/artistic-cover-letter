@@ -66,10 +66,8 @@ async def submit_text(
     full = fullComposite(layer0, layer1, layer2, layer3, layer4)
 
     images_to_encode = [full, layer0, layer1, layer2, layer3, layer4]
-
     with ThreadPoolExecutor() as executor:
         encoded_images = list(executor.map(encodeImage, images_to_encode))
-
     return JSONResponse(content=encoded_images)
 
 @app.post("/background-bleed")
@@ -89,14 +87,10 @@ async def background_bleed(
 
     layer0 = calcBackgroundBleed(layer2, radius, intensity, resolution)
     full_image = fullComposite(layer0, layer1, layer2, layer3, layer4)
-    return JSONResponse(content=[
-        encodeImage(full_image),
-        encodeImage(layer0),
-        encodeImage(layer1),
-        encodeImage(layer2),
-        encodeImage(layer3),
-        encodeImage(layer4),
-    ])
+    images_to_encode = [full_image, layer0, layer1, layer2, layer3, layer4]
+    with ThreadPoolExecutor() as executor:
+        encoded_images = list(executor.map(encodeImage, images_to_encode))
+    return JSONResponse(content=encoded_images)
 
 # Encodes all images to send them back to the frontend
 def encodeImage(image):
@@ -129,14 +123,10 @@ async def dropshadow(
 
     layer1 = calcDropshadow(layer2, radius, intensity, color, resolution)
     full_image = fullComposite(layer0, layer1, layer2, layer3, layer4)
-    return JSONResponse(content=[
-        encodeImage(full_image),
-        encodeImage(layer0),
-        encodeImage(layer1),
-        encodeImage(layer2),
-        encodeImage(layer3),
-        encodeImage(layer4),
-    ])
+    images_to_encode = [full_image, layer0, layer1, layer2, layer3, layer4]
+    with ThreadPoolExecutor() as executor:
+        encoded_images = list(executor.map(encodeImage, images_to_encode))
+    return JSONResponse(content=encoded_images)
 
 @app.post("/inner-shadow")
 async def innerShadow(
@@ -156,14 +146,10 @@ async def innerShadow(
 
     layer3 = calcInnerShadow(layer2, radius, intensity, color, resolution)
     full_image = fullComposite(layer0, layer1, layer2, layer3, layer4)
-    return JSONResponse(content=[
-        encodeImage(full_image),
-        encodeImage(layer0),
-        encodeImage(layer1),
-        encodeImage(layer2),
-        encodeImage(layer3),
-        encodeImage(layer4),
-    ])
+    images_to_encode = [full_image, layer0, layer1, layer2, layer3, layer4]
+    with ThreadPoolExecutor() as executor:
+        encoded_images = list(executor.map(encodeImage, images_to_encode))
+    return JSONResponse(content=encoded_images)
 
 @app.post("/outline")
 async def outline(
@@ -182,14 +168,10 @@ async def outline(
 
     layer4 = calcOutline(layer2, width, color, resolution)
     full_image = fullComposite(layer0, layer1, layer2, layer3, layer4)
-    return JSONResponse(content=[
-        encodeImage(full_image),
-        encodeImage(layer0),
-        encodeImage(layer1),
-        encodeImage(layer2),
-        encodeImage(layer3),
-        encodeImage(layer4),
-    ])
+    images_to_encode = [full_image, layer0, layer1, layer2, layer3, layer4]
+    with ThreadPoolExecutor() as executor:
+        encoded_images = list(executor.map(encodeImage, images_to_encode))
+    return JSONResponse(content=encoded_images)
 
 @app.post("/retrieve-fonts")
 async def retrieveFonts():
