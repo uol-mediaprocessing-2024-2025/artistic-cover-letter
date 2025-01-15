@@ -9,8 +9,9 @@ from fastapi import FastAPI, UploadFile, File, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 
+from backend.src.PhotoAnalysis import getSubjects
 from image_processing import process_image_blur, circular_kernel, calcDropshadow, calcBackgroundBleed, calcInnerShadow, \
-    calcOutline
+    calcOutline, resizeImage
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from letter_rendering import generate_letter_layer, get_fonts
 import io
@@ -177,6 +178,20 @@ async def outline(
 async def retrieveFonts():
     font_files, font_names = get_fonts()
     return JSONResponse(content=font_names)
+
+@app.post("/generate-suggestions")
+async def generateSuggestions(
+        photos: list[UploadFile] = File(...)
+):
+    images = []
+    for photo in photos:
+        data = await photo.read()
+        image = Image.open(io.BytesIO(data))
+        image_scaled = resizeImage(image, 512)
+        images.append(image_scaled)
+    results = getSubjects(images)
+    return JSONResponse(content=results)
+
 
 # Old
 @app.post("/apply-blur")

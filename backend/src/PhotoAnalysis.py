@@ -1,11 +1,41 @@
+import threading
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import nullcontext
+
 import numpy as np
 import os
 from PIL import Image
 import cv2
 import matplotlib.pyplot as plt
+import matplotlib as mpl
+#mpl.use('TkAgg')
+import moondream as md
+import psutil
 
+def main5():
+    image = cv2.imread("C:/Users/Simon/Downloads/examplePhotos/P1040731.jpg")
+    image.resize(100,100)
 
-from backend.src.testing import load_images_from_folder
+    # BING AI 3D plotting code
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+    # Flatten the image array and extract the RGB values
+    r, g, b = image[:, :, 0].flatten(), image[:, :, 1].flatten(), image[:, :, 2].flatten()
+
+    # Create a figure for the 3D plot
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    # Plot the RGB values in 3D space
+    ax.scatter(r, g, b, c=np.stack((r, g, b), axis=1) / 255.0, marker='o', alpha=0.6)
+
+    # Set axis labels
+    ax.set_xlabel('Red')
+    ax.set_ylabel('Green')
+    ax.set_zlabel('Blue')
+
+    # Show the plot
+    plt.show()
 
 
 def main():
@@ -144,6 +174,59 @@ def draw_hue_histogram_2(image):
     plt.plot(hist, color='orange')
     plt.xlim([0, 180])
     plt.show()
+
+# Bing AI helped me fix this model loading issue
+class ModelLoader:
+    _instance = None
+    _lock = threading.Lock()
+
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            with cls._lock:
+                if not cls._instance:
+                    cls._instance = super(ModelLoader, cls).__new__(cls)
+                    cls._instance.model = None
+        return cls._instance
+
+    def load_model(self, model_path):
+        if self.model is None:
+            print("Loading Moondream model...")
+            self.model = md.vl(model=model_path)
+        return self.model
+
+def getSubjects(images):
+    encoded_images = []
+    model_loader = ModelLoader()
+    model = model_loader.load_model("backend/src/models/moondream-2b-int8.mf")
+
+    def encode_image(image):
+        return model.encode_image(image)
+    def query(encoded_image):
+        return model.query(encoded_image, "Please tell me the name of this place, if you can.")["answer"]
+
+    # adjust workers to avoid using up all system memory
+    available_memory = psutil.virtual_memory().available / 1024 / 1024 / 1024
+    if available_memory <= 2: available_memory = 2
+    encoding_workers = int(available_memory / 0.275)
+    querying_workers = int(available_memory / 2)
+
+    print("Encoding... (up to " + str(encoding_workers) + " workers)")
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        results = list(executor.map(encode_image, images))
+    encoded_images.extend(results)
+    print("Querying... (up to " + str(querying_workers) + " workers)")
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        answers = list(executor.map(query, encoded_images))
+    print("Done")
+    print("Raw results: " + str(answers))
+    results = []
+    for answer in answers:
+        if answer not in results:
+            words = answer.split()
+            if len(words) < 5:
+                results.append(answer)
+    return results
+
 
 if __name__ == '__main__':
     main()

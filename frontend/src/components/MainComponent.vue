@@ -37,6 +37,7 @@ const text = ref("Text");
 const selectedFont = ref("Impact");
 const availableFonts = ref([]);
 const weight = ref("bold");
+const suggestions = ref(["Holiday","Vacation"]);
 
 // Image layers
 const fullImage = ref(null);
@@ -105,7 +106,6 @@ const submitText = async () => {
     formData.append('outline_width', outlinewidth.valueOf().value);
     formData.append('outline_color', outlinecolor.valueOf().value);
     // I got it to work, yay
-    console.log(selectedPhotos);
     for (const [index, URL] of uploadedPhotos.value.entries()) {
       if (selectedPhotos.value[index]){
         const response = await fetch(URL);
@@ -205,6 +205,34 @@ const changeBackgroundBleed = async () => {
     console.error("Failure:", error);
   } finally {
     isLoading.value = false;
+  }
+}
+
+const updateTextSuggestions = async () => {
+  if (selectedPhotos.value.every(value => value === false)){
+    alertMessage.value = "Please select some photos to continue.";
+    return
+  }
+  isLoading.value = true;
+  errorMessage.value = null;
+  try {
+    const formData = new FormData();
+    for (const [index, URL] of uploadedPhotos.value.entries()) {
+      if (selectedPhotos.value[index]){
+        const response = await fetch(URL);
+        const blob = await response.blob();
+        formData.append('photos', blob, `image.jpg`)
+      }
+    }
+    const response = await axios.post(`${store.apiUrl}/generate-suggestions`, formData, {});
+    const suggestionsArray = response.data;
+    suggestions.value = suggestionsArray;
+  } catch (error) {
+    errorMessage.value = "Internal server error.";
+    console.error('Failure:', error);
+  } finally {
+    isLoading.value = false;
+    alertMessage.value = null;
   }
 }
 
@@ -409,8 +437,13 @@ function editPhoto(index){
       </v-card-title>
       <!-- Card content -->
       <v-text-field v-model="text" label="Enter your text" prepend-icon="mdi-format-text" @keyup.enter="submitText" :disabled="isLoading"></v-text-field>
+      <v-row>
+        <v-col>
+          <v-btn @click="updateTextSuggestions" rounded :disabled=isLoading prepend-icon="mdi-refresh">Generate suggestions</v-btn>
+          <v-btn v-for="suggestion in suggestions" @click="() =>{text = suggestion; submitText()}" :text=suggestion rounded :disabled=isLoading> </v-btn>
+        </v-col>
+      </v-row>
       <v-select label="Select font" prepend-icon="mdi-format-font" :items="availableFonts" v-model="selectedFont" @wheel="onWheel" @keydown="keyDown" @update:modelValue="submitText" :disabled="isLoading"></v-select>
-
       <v-menu location="bottom" :close-on-content-click="false">
         <template v-slot:activator="{ props }">
           <v-btn v-bind="props"> Pick color </v-btn>
@@ -629,6 +662,10 @@ function editPhoto(index){
 
 .v-btn{
   margin: 5px;
+}
+
+.v-select{
+  margin-top: 20px;
 }
 
 .color-swatch {
