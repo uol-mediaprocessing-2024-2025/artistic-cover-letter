@@ -37,7 +37,8 @@ const text = ref("Text");
 const selectedFont = ref("Impact");
 const availableFonts = ref([]);
 const weight = ref("bold");
-const suggestions = ref(["Holiday","Vacation"]);
+const textSuggestions = ref(["Holiday","Vacation"]);
+const fontSuggestions = ref(["Antonio", "Impact", "Bahnschrift", "Harvest", "Helvetica", "Raleway", "Tahoma", "Yu Gothic"])
 
 // Image layers
 const fullImage = ref(null);
@@ -227,7 +228,7 @@ const updateTextSuggestions = async () => {
     }
     const response = await axios.post(`${store.apiUrl}/generate-suggestions`, formData, {});
     const suggestionsArray = response.data;
-    suggestions.value = suggestionsArray;
+    textSuggestions.value = suggestionsArray;
   } catch (error) {
     errorMessage.value = "Internal server error.";
     console.error('Failure:', error);
@@ -440,14 +441,23 @@ function editPhoto(index){
       <v-text-field v-model="text" label="Enter your text" prepend-icon="mdi-format-text" @keyup.enter="submitText" :disabled="isLoading"></v-text-field>
       <v-row>
         <v-col>
-          <v-btn @click="updateTextSuggestions" :disabled=isLoading prepend-icon="mdi-refresh">Generate suggestions</v-btn>
-          <v-btn v-for="suggestion in suggestions" @click="() =>{text = suggestion; submitText()}" :text=suggestion :disabled=isLoading> </v-btn>
+          <v-btn @click="updateTextSuggestions" :disabled=isLoading prepend-icon="mdi-creation">Generate suggestions</v-btn>
+          <v-btn v-for="suggestion in textSuggestions" @click="() =>{text = suggestion; submitText()}" :text=suggestion :disabled=isLoading> </v-btn>
         </v-col>
       </v-row>
       <v-select label="Select font" prepend-icon="mdi-format-font" :items="availableFonts" v-model="selectedFont" @wheel="onWheel" @keydown="keyDown" @update:modelValue="submitText" :disabled="isLoading"></v-select>
+      <v-row>
+        <v-col>
+          <span v-for="suggestion in fontSuggestions" >
+            <v-btn v-if="availableFonts.indexOf(suggestion) !== -1" @click="() =>{selectedFont = suggestion;submitText()}" :text=suggestion :disabled=isLoading></v-btn>
+          </span>
+        </v-col>
+      </v-row>
+      <!-- Bing AI helped me find the right style settings for the p tag.-->
+      <div v-if="!fullImage"><p :style="{ margin: '12px', fontWeight: weight, fontFamily: selectedFont, fontSize: '5vw', maxHeight: '450px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center' , backgroundColor: backgroundcolor.valueOf()}"> {{text}} </p></div>
       <v-menu location="bottom" :close-on-content-click="false">
         <template v-slot:activator="{ props }">
-          <v-btn v-bind="props" :disabled=isLoading prepend-icon="mdi-border-color"> Pick color </v-btn>
+          <v-btn v-bind="props" :disabled=isLoading prepend-icon="mdi-border-color"> Pick background color </v-btn>
         </template>
         <v-color-picker v-model="backgroundcolor" @update:model-value="updatebackground" class="ma-2" :disabled="isLoading" show-swatches mode="rgb" :swatches="[['#000000', '#FFFFFF']]"></v-color-picker>
       </v-menu>
@@ -458,9 +468,6 @@ function editPhoto(index){
           @click="() =>{backgroundcolor = suggestedbackgroundcolor; updatebackground() }" :disabled=isLoading> Set
           <div class="color-swatch" :style="{ backgroundColor: suggestedbackgroundcolor }"></div>
       </v-btn>
-
-      <!-- Bing AI helped me find the right style settings for the p tag.-->
-      <div v-if="!fullImage"><p :style="{ fontWeight: weight, fontFamily: selectedFont, fontSize: '5vw', maxHeight: '450px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center' , backgroundColor: backgroundcolor.valueOf()}"> {{text}} </p></div>
     </v-card>
     <!-- PHOTOS -->
     <v-card elevation="2" class="pa-4 card-container">

@@ -236,6 +236,7 @@ def getSubjects(images):
 
 # Bing AI code
 def download_model(url, save_path):
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
     response = requests.get(url, stream=True)
     if response.status_code == 200:
         with open(save_path, 'wb') as file:
