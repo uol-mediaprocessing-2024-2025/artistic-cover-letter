@@ -215,6 +215,7 @@ const updateTextSuggestions = async () => {
   }
   isLoading.value = true;
   errorMessage.value = null;
+  alertMessage.value = "This might take a while, please wait.";
   try {
     const formData = new FormData();
     for (const [index, URL] of uploadedPhotos.value.entries()) {
@@ -439,22 +440,22 @@ function editPhoto(index){
       <v-text-field v-model="text" label="Enter your text" prepend-icon="mdi-format-text" @keyup.enter="submitText" :disabled="isLoading"></v-text-field>
       <v-row>
         <v-col>
-          <v-btn @click="updateTextSuggestions" rounded :disabled=isLoading prepend-icon="mdi-refresh">Generate suggestions</v-btn>
-          <v-btn v-for="suggestion in suggestions" @click="() =>{text = suggestion; submitText()}" :text=suggestion rounded :disabled=isLoading> </v-btn>
+          <v-btn @click="updateTextSuggestions" :disabled=isLoading prepend-icon="mdi-refresh">Generate suggestions</v-btn>
+          <v-btn v-for="suggestion in suggestions" @click="() =>{text = suggestion; submitText()}" :text=suggestion :disabled=isLoading> </v-btn>
         </v-col>
       </v-row>
       <v-select label="Select font" prepend-icon="mdi-format-font" :items="availableFonts" v-model="selectedFont" @wheel="onWheel" @keydown="keyDown" @update:modelValue="submitText" :disabled="isLoading"></v-select>
       <v-menu location="bottom" :close-on-content-click="false">
         <template v-slot:activator="{ props }">
-          <v-btn v-bind="props"> Pick color </v-btn>
+          <v-btn v-bind="props" :disabled=isLoading prepend-icon="mdi-border-color"> Pick color </v-btn>
         </template>
         <v-color-picker v-model="backgroundcolor" @update:model-value="updatebackground" class="ma-2" :disabled="isLoading" show-swatches mode="rgb" :swatches="[['#000000', '#FFFFFF']]"></v-color-picker>
       </v-menu>
-      <v-btn @click="() =>{backgroundcolor = '#FFFFFF'; updatebackground() }"> Set <div class="color-swatch" :style="{ backgroundColor: '#FFFFFF' }"></div></v-btn>
-      <v-btn @click="() =>{backgroundcolor = '#000000'; updatebackground() }"> Set <div class="color-swatch" :style="{ backgroundColor: '#000000' }"></div></v-btn>
+      <v-btn @click="() =>{backgroundcolor = '#FFFFFF'; updatebackground() }" :disabled=isLoading> Set <div class="color-swatch" :style="{ backgroundColor: '#FFFFFF' }"></div></v-btn>
+      <v-btn @click="() =>{backgroundcolor = '#000000'; updatebackground() }" :disabled=isLoading> Set <div class="color-swatch" :style="{ backgroundColor: '#000000' }"></div></v-btn>
       <v-btn
           v-for="suggestedbackgroundcolor in suggestedbackgroundcolors"
-          @click="() =>{backgroundcolor = suggestedbackgroundcolor; updatebackground() }"> Set
+          @click="() =>{backgroundcolor = suggestedbackgroundcolor; updatebackground() }" :disabled=isLoading> Set
           <div class="color-swatch" :style="{ backgroundColor: suggestedbackgroundcolor }"></div>
       </v-btn>
 
@@ -643,6 +644,11 @@ function editPhoto(index){
   width: 100%;
   margin-bottom: 5px;
   margin-top: 5px;
+  border-radius: 15px;
+}
+
+.v-expansion-panel{
+  border-radius: 15px;
 }
 
 .image-wrapper {
@@ -662,6 +668,7 @@ function editPhoto(index){
 
 .v-btn{
   margin: 5px;
+  border-radius: 15px;
 }
 
 .v-select{

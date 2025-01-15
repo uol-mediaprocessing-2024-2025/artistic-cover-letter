@@ -11,6 +11,7 @@ import matplotlib as mpl
 #mpl.use('TkAgg')
 import moondream as md
 import psutil
+import requests
 
 def main5():
     image = cv2.imread("C:/Users/Simon/Downloads/examplePhotos/P1040731.jpg")
@@ -196,8 +197,14 @@ class ModelLoader:
 
 def getSubjects(images):
     encoded_images = []
+    if not os.path.isfile("backend/src/models/moondream-2b-int8.mf.gz"):
+        print("Moondream model not found, downloading...")
+        download_model(
+            "https://huggingface.co/vikhyatk/moondream2/resolve/9dddae84d54db4ac56fe37817aeaeb502ed083e2/moondream-2b-int8.mf.gz?download=true",
+            "backend/src/models/moondream-2b-int8.mf.gz"
+        )
     model_loader = ModelLoader()
-    model = model_loader.load_model("backend/src/models/moondream-2b-int8.mf")
+    model = model_loader.load_model("backend/src/models/moondream-2b-int8.mf.gz")
 
     def encode_image(image):
         return model.encode_image(image)
@@ -227,6 +234,17 @@ def getSubjects(images):
                 results.append(answer)
     return results
 
+# Bing AI code
+def download_model(url, save_path):
+    response = requests.get(url, stream=True)
+    if response.status_code == 200:
+        with open(save_path, 'wb') as file:
+            for chunk in response.iter_content(chunk_size=1024):
+                if chunk:
+                    file.write(chunk)
+        print(f"Model downloaded successfully and saved to {save_path}")
+    else:
+        print(f"Failed to download model. Status code: {response.status_code}")
 
 if __name__ == '__main__':
     main()
