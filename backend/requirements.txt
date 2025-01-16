@@ -2,3 +2,5 @@ fastapi
 uvicorn
 pillow
 python-multipart
+scikit-learn
+colorspacious

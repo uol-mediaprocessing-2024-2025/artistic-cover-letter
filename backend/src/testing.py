@@ -12,10 +12,13 @@ from fastapi.responses import StreamingResponse, JSONResponse
 from backend.src.PhotoAnalysis import getSubjects
 from backend.src.image_processing import calcBackgroundBleed, calcDropshadow, calcInnerShadow, circular_kernel, \
     resizeImage
+
 from image_processing import process_image_blur
 from PIL import Image, ImageDraw, ImageFont, ImageChops, ImageCms
 from letter_rendering import generate_letter_layer
+import matplotlib.colors as matcolors
 import matplotlib.pyplot as plt
+import colorspacious as cs
 import os
 import time
 import matplotlib.image as mpimg
@@ -23,42 +26,28 @@ import io
 import uvicorn
 import cv2
 import numpy as np
+from sklearn.cluster import KMeans
 import base64
 from letter_rendering import generate_letter_mask, texture_letter
 from collections import Counter
 import moondream as md
 
+
 def main():
-    images = load_images_from_folder("C:/Users/Simon/Downloads/examplePhotos2/")
-    images_small = []
+
+    images = load_images_from_folder("C:/Users/Simon/Downloads/examplePhotos sorted/")
+
     for image in images:
-        image_small = resizeImage(image, 512)
-        images_small.append(image_small)
-    starttime = time.time()
-    answers = getSubjects(images_small)
-    print(answers)
-    print("Time: " + str(time.time()-starttime))
+        plt.imshow(image)
+        plt.show()
+        colors = get_image_colors(image)
+        plot_colors(colors)
 
-def main7():
-    images = load_images_from_folder("C:/Users/Simon/Downloads/examplePhotos2/")
 
-    # Test sRGB color space
-    colors_1_sRGB = extract_dominant_colors(images[0])
-    plot_colors(colors_1_sRGB)
-    colors_2_sRGB = extract_dominant_colors(images[1])
-    plot_colors(colors_2_sRGB)
-    distance_sRGB = color_scheme_distance(colors_1_sRGB, colors_2_sRGB)
-    print("Distance sRGB: " + str(distance_sRGB))
 
-    # Test Oklab color space
-    colors_1_Oklab = extract_dominant_colors_2(images[0])
-    plot_colors(colors_1_Oklab)
-    colors_2_Oklab = extract_dominant_colors_2(images[1])
-    plot_colors(colors_2_Oklab)
-    distance_Oklab = color_scheme_distance(colors_1_sRGB, colors_2_sRGB)
-    print("Distance Oklab: " + str(distance_Oklab))
 
-    # todo: implement adjacency list for all images to identify pairs
+
+
 
 # Calculates the distance between two color schemes
 # Needs improvement
@@ -79,6 +68,62 @@ def color_scheme_distance(colors_1, colors_2):
         print("Color distance: " + str(distance))
     return total_distance
 
+# Uses an Algorithm by Kamal Joshi to find prominent colors.
+# https://hackernoon.com/extract-prominent-colors-from-an-image-using-machine-learning-vy2w33rx
+def get_image_colors(image, k=24):
+    # Resize to 128x128 for performance
+    image = image.resize((128,128))
+    image = np.array(image)
+
+    # Reshape image to a 2D array of pixels
+    srgb_pixels = image.reshape(-1, 3)
+    lab_pixels = cs.cspace_convert(srgb_pixels, "sRGB1", "CIELab")
+
+    # Run k-means clustering
+    kmeans = KMeans(n_clusters=k)
+    kmeans.fit(lab_pixels)
+
+    # Get the cluster centers (dominant colors)
+    colors = kmeans.cluster_centers_
+    colors = cs.cspace_convert(colors, "CIELab", "sRGB1")
+
+    # Convert color to integer values
+    colors_rgb = [list(map(int, color)) for color in colors]
+
+    # Sort by hue
+    hue_sorted = sort_colors_by_hsv_component(colors_rgb, 0)
+
+    # Split into six groups
+    group1 = hue_sorted[0:4]
+    group2 = hue_sorted[4:8]
+    group3 = hue_sorted[8:12]
+    group4 = hue_sorted[12:16]
+    group5 = hue_sorted[16:20]
+    group6 = hue_sorted[20:24]
+
+    groups = [group1, group2, group3, group4, group5, group6]
+    groupresults = []
+
+    # Perform other group operations
+    for group in groups:
+        group = sort_colors_by_hsv_component(group, 1)
+        group = group[2:4]
+        group = sort_colors_by_hsv_component(group, 2)
+        groupresults.append(group[1])
+    return groupresults
+
+def sort_colors_by_hsv_component(rgb_colors, dimension):
+    # normalize rgb and convert to hsv
+    normalized = np.array(rgb_colors) / 255.0
+    hsv_colors = [matcolors.rgb_to_hsv(color) for color in normalized]
+
+    # Sort the colors by the hue component (first value in HSB)
+    sorted_indices = np.argsort([color[dimension] for color in hsv_colors])
+
+    # Return the colors sorted by hue
+    return [rgb_colors[i] for i in sorted_indices]
+
+
 # Extracts dominant colors, with help from Bing AI
 def extract_dominant_colors(image, num_colors=8):
     image = image.resize((500, 500))  # Resize for performance
@@ -88,41 +133,6 @@ def extract_dominant_colors(image, num_colors=8):
     image_4bit_array_img = Image.fromarray(image_4bit_array)
     image_4bit_array_img.show()
     dilated = cv2.dilate(image_4bit_array, circular_kernel(1)) # Dilate to reduce number of darker colors, not the best solution
-    image = Image.fromarray(dilated)
-
-    pixels = np.array(image).reshape(-1, 3)
-    pixel_counts = Counter(map(tuple, pixels))
-    dominant_colors = pixel_counts.most_common(num_colors)
-
-    return [color for color, count in dominant_colors]
-
-def extract_dominant_colors_2(image, num_colors=8):
-    image = image.resize((500, 500))  # Resize for performance
-
-    image_lab = rgb_to_lab(image)
-    image_lab_array = np.asarray(image_lab)
-    image_lab_array = np.array(image_lab, dtype=np.float32).copy()
-
-    image_lab_array[..., 0] = (image_lab_array[..., 0] / 255.0) * 100.0  # Normalize L* to [0, 100]
-    image_lab_array[..., 1:] = image_lab_array[..., 1:] - 128.0  # Center a* and b* around 0
-
-    # Reduce color depth
-    image_4bit_array = (image_lab_array // 16) * 16
-
-    # Denormalize LAB values
-    image_4bit_array[..., 0] = (image_4bit_array[..., 0] / 100.0) * 255.0  # Scale L* back to [0, 255]
-    image_4bit_array[..., 1:] = image_4bit_array[..., 1:] + 128.0  # Shift a* and b* back to [0, 255]
-
-    # Convert back to image format
-    image_lab_reduced = Image.fromarray(np.uint8(image_4bit_array), 'LAB')
-
-    # Convert reduced LAB back to RGB
-    image_rgb_reduced = lab_to_rgb(image_lab_reduced)
-
-    image_rgb_reduced.show()
-
-    image_4bit_rgb_array = np.array(image_rgb_reduced)
-    dilated = cv2.dilate(image_4bit_rgb_array, circular_kernel(1)) # Dilate to reduce number of darker colors, not the best solution
     image = Image.fromarray(dilated)
 
     pixels = np.array(image).reshape(-1, 3)
@@ -165,7 +175,6 @@ def rgb_to_oklab(rgb):
     return np.array([l_, a_, b_])
 
 # Oklab to RGB function written by Bing AI
-
 def oklab_to_rgb(oklab):
     l_, a_, b_ = oklab
 
