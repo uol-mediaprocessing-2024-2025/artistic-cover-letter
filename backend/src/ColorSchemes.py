@@ -69,10 +69,10 @@ def rate_color_scheme(color_scheme, photo_colors, photo_count):
 def rate_photo_pairing(color_scheme, photo_scheme):
     total_score = 0
     for color in color_scheme:
-        best = 0
+        best = 30000
         for photo_color in photo_scheme:
             score = rate_color_pairing(color, photo_color)
-            if score > best:
+            if score < best:
                 best = score
         total_score = total_score + best
     return total_score
@@ -82,10 +82,7 @@ def rate_color_pairing(color_scheme, photo_color):
     photo_color_lab = cs.cspace_convert(photo_color, "sRGB1", "CIELab")
     color_scheme_lab = cs.cspace_convert(color_scheme, "sRGB1", "CIELab")
     distance = np.linalg.norm(color_scheme_lab - photo_color_lab)
-    score = 12800-distance
-    if score < 1:
-        print("WARNING! " + str(distance))
-    return score
+    return distance
 
 
 

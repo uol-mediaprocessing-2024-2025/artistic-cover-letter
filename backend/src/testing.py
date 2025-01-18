@@ -8,6 +8,7 @@ from PIL.ImageQt import rgb
 from fastapi import FastAPI, UploadFile, File, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
+from scipy.spatial.distance import squareform
 
 from backend.src.ColorSchemes import generate_constant_value, get_frequent_colors, \
     generate_color_schemes, rate_color_pairing, rate_photo_pairing, rate_color_scheme, plot_colors
@@ -28,7 +29,7 @@ import io
 import uvicorn
 import cv2
 import numpy as np
-from sklearn.cluster import KMeans
+from sklearn.cluster import AgglomerativeClustering, KMeans
 import base64
 from letter_rendering import generate_letter_mask, texture_letter
 from collections import Counter
@@ -43,56 +44,60 @@ def main():
     with ThreadPoolExecutor() as executor:
         photo_colors = list(executor.map(get_image_colors, images))
 
-    print("Finding color schemes... ")
-    frequent_colors = get_frequent_colors(np.array(photo_colors))
+    distance_matrix = np.zeros((len(photo_colors), len(photo_colors)))
 
-    plot_colors(frequent_colors)
+    print("Calculating distance matrix... ")
+    for i in range(len(photo_colors)):
+        for j in range(i, len(photo_colors)):
+            if i == j:
+                distance_matrix[i, j] = 0
+            else:
+                distance = rate_photo_pairing(photo_colors[i], photo_colors[j])
+                distance_matrix[i, j] = distance
+                distance_matrix[j, i] = distance  # Matrix symmetry
 
-    #score_final, indices = rate_color_scheme(color_scheme, photo_colors, 5)
+    print("Performing clustering... ")
+    cluster_count = 3
 
-    top_schemes_photos = []
-    top_schemes_pallet = []
-    top_schemes_scores = []
+    kmeans = KMeans(n_clusters=cluster_count)
+    cluster_assignments = kmeans.fit_predict(distance_matrix)
+    cluster_centers = kmeans.cluster_centers_
 
-    for frequent_color in frequent_colors:
-        #frequent_color = np.array([73, 206, 255])
-        print("Running color...")
-        best_schemes_photos, best_schemes_pallet, all_scores_sorted = generate_color_schemes(frequent_color, photo_colors, 5)
-        tmp1 = best_schemes_photos
-        tmp2 = best_schemes_pallet
-        tmp3 = all_scores_sorted
+    print("Done!")
 
-    for element in tmp1:
-        top_schemes_photos.append(element)
-    for element in tmp2:
-        top_schemes_pallet.append(element)
-    for element in tmp3:
-        top_schemes_scores.append(element)
+    print(cluster_assignments)
 
-    combined_sorted = sorted(zip(top_schemes_scores, top_schemes_photos, top_schemes_pallet), reverse=True)
-    top_schemes_scores, top_schemes_photos, top_schemes_pallet = map(list, zip(*combined_sorted))
+    closest_points = find_closest_points(cluster_centers, distance_matrix)
+    print(closest_points)
 
-    for index in top_schemes_photos[0]:
-        plt.imshow(images[index])
-        plt.show()
+    groups = []
+    for integer in range(0,cluster_count):
+        cluster_group = []
+        for index in range(0,len(cluster_assignments)):
+            if cluster_assignments[index] == integer:
+                cluster_group.append(index)
+        groups.append(cluster_group)
 
-    for scheme in best_schemes_pallet:
-        plot_colors(scheme)
+    schemes = []
+    for index in closest_points:
+        schemes.append(photo_colors[index])
 
+    for index in range(0,3):
+        plot_colors(schemes[index])
+        for j in range(0, len(groups[index])):
+            image_index = groups[index][j]
+            plt.imshow(images[image_index])
+            plt.show()
 
-
-
-
-
-    #schemes, rating = generate_color_schemes(frequent_colors[0], photo_colors)
-
-    #plot_colors(schemes[0])
-
-
-
-
-
-
+    # Takes cluster centers and uses the distance matrix to find the center cluster element.
+    # Written by Bing AI
+def find_closest_points(cluster_centers, distance_matrix):
+    closest_points = []
+    for center in cluster_centers:
+        distances = np.linalg.norm(distance_matrix - center, axis=1)
+        closest_point = np.argmin(distances)
+        closest_points.append(closest_point)
+    return closest_points
 
 # Calculates the distance between two color schemes
 # Needs improvement
