@@ -9,7 +9,9 @@ from fastapi import FastAPI, UploadFile, File, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 
+from backend.src.ColorSchemes import cluster_photos
 from backend.src.PhotoAnalysis import getSubjects
+from backend.src.testing import get_image_colors
 from image_processing import process_image_blur, circular_kernel, calcDropshadow, calcBackgroundBleed, calcInnerShadow, \
     calcOutline, resizeImage
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
@@ -35,6 +37,26 @@ app.add_middleware(
     allow_methods=["*"],  # Allows all HTTP methods
     allow_headers=["*"],  # Allows all headers
 )
+
+@app.post("/analyze-photos")
+async def analyze_photos(photos: list[UploadFile] = File(...)):
+    images = []
+    for photo in photos:
+        data = await photo.read()
+        image = Image.open(io.BytesIO(data))
+        image = image.resize((128,128)) # Resize to 128x128 for performance
+        images.append(image)
+    with ThreadPoolExecutor() as executor:
+        photo_colors = list(executor.map(get_image_colors, images))
+    schemes, groups = cluster_photos(photo_colors)
+    content = []
+    for scheme in schemes:
+        content.append(scheme)
+    print(schemes)
+    for group in groups:
+        content.append(group)
+    return JSONResponse(content=content)
+
 @app.post("/submit-text")
 async def submit_text(
         text: str = Form(...),

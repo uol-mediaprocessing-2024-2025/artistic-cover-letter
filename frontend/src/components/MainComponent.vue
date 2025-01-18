@@ -55,10 +55,16 @@ const selectedPhotos = ref([]);
 
 // UI elements
 const photoPanel = ref(null);
+const colorSchemePanel = ref(null);
 const backgroundcolor = ref("#FFFFFF");
 const suggestedbackgroundcolors = ref(["#222222","#666666","#BBBBBB"]);
 const editorDialog = ref(null);
 const editorIndex = ref(null);
+
+// Color schemes and photo groups
+const colorSchemes = ref([]);
+const photoGroups = ref([]);
+const selectedScheme = ref(0);
 
 // onMounted is run when the page gets mounted in order to retrieve available fonts.
 onMounted(async () => {
@@ -71,6 +77,48 @@ onMounted(async () => {
     console.error('Failure:', error);
   }
 });
+
+const analyzePhotos = async () => {
+  if (uploadedPhotos.value.length === 0){
+    alertMessage.value = "Please upload some photos to continue.";
+    return;
+  }
+    isLoading.value = true;
+    errorMessage.value = null;
+    try {
+      const formData = new FormData();
+      for (const [index, URL] of uploadedPhotos.value.entries()) {
+        const response = await fetch(URL);
+        const blob = await response.blob();
+        formData.append('photos', blob, `image.jpg`)
+      }
+      const response = await axios.post(`${store.apiUrl}/analyze-photos`, formData, {});
+      const data = response.data
+      colorSchemes.value = []
+      photoGroups.value = []
+      for (let i = 0; i < (data.length/2); i++) {
+        colorSchemes.value.push(data[i])
+        photoGroups.value.push(data[i+(data.length/2)])
+      }
+      colorSchemePanel.value = 0
+    } catch (error) {
+      errorMessage.value = "Internal server error.";
+      console.error('Failure:', error);
+    } finally {
+    isLoading.value = false;
+    alertMessage.value = null;
+  }
+}
+
+const updateColorScheme = async () => {
+  selectedPhotos.value.fill(false)
+  const photoGroup = photoGroups.value[selectedScheme.valueOf().value]
+  for (const [index, URL] of photoGroup.valueOf().entries()) {
+    selectedPhotos.value[photoGroup.valueOf()[index]] = true;
+  }
+  await submitText()
+  suggestedbackgroundcolors.value = colorSchemes.value[selectedScheme.value];
+}
 
 // Submits text to be processed by the backend
 const submitText = async () => {
@@ -317,7 +365,8 @@ const handleFileUpload = async() => {
     selectedPhotos.value.push(true);
   });
   try {
-    await submitText()
+    await analyzePhotos()
+    await updateColorScheme()
   } finally {
     newlyUploadedFiles.value = null;
   }
@@ -326,7 +375,10 @@ const handleFileUpload = async() => {
 const deleteAllPhotos = async () => {
   uploadedPhotos.value = []
   photoPanel.value = null;
+  colorSchemePanel.value = null;
   fullImage.value = null;
+  colorSchemes.value = null;
+  photoGroups.value = null;
   await submitText()
 }
 
@@ -477,8 +529,11 @@ function editPhoto(index){
       </v-card-title>
       <v-file-input v-model="newlyUploadedFiles" label="Upload photos" multiple accept="image/*" @change="handleFileUpload" prepend-icon="mdi-upload" :disabled="isLoading"></v-file-input>
       <v-expansion-panels v-model="photoPanel">
-        <v-expansion-panel :title="'Your photos (' + uploadedPhotos.length + ')'">
+        <v-expansion-panel :title="'All photos (' + uploadedPhotos.length + ')'">
           <v-expansion-panel-text>
+            <v-btn @click="selectAllPhotos(true)" :disabled="isLoading">Select all photos</v-btn>
+            <v-btn @click="selectAllPhotos(false)" :disabled="isLoading">Deselect all photos</v-btn>
+            <v-btn @click="deleteAllPhotos" :disabled="isLoading" color="error">Delete all photos</v-btn>
             <v-container>
               <v-row>
                 <v-col  v-for="(photo, index) in uploadedPhotos" :key="index" md="2">
@@ -496,9 +551,26 @@ function editPhoto(index){
                 </v-col>
               </v-row>
             </v-container>
-            <v-btn @click="selectAllPhotos(true)" :disabled="isLoading">Select all photos</v-btn>
-            <v-btn @click="selectAllPhotos(false)" :disabled="isLoading">Deselect all photos</v-btn>
-            <v-btn @click="deleteAllPhotos" :disabled="isLoading" color="error">Delete all photos</v-btn>
+          </v-expansion-panel-text>
+        </v-expansion-panel>
+      </v-expansion-panels>
+      <br>
+      <v-expansion-panels v-model="colorSchemePanel">
+        <v-expansion-panel title="Color Schemes">
+          <v-expansion-panel-text>
+            <v-radio-group v-model="selectedScheme" @update:model-value="updateColorScheme" :disabled="isLoading">
+              <v-row v-for="(scheme, index) in colorSchemes">
+                <v-col cols="auto">
+                  <v-radio :value=index ></v-radio>
+                </v-col>
+                <v-col>
+                  <div style="display:flex; align-items: center;">
+                    <div v-for="(color, colorIndex) in scheme" class="color-swatch-2" :key="colorIndex" :style="{ backgroundColor: color}"></div>
+                  </div>
+                </v-col>
+              </v-row>
+
+            </v-radio-group>
           </v-expansion-panel-text>
         </v-expansion-panel>
       </v-expansion-panels>
@@ -687,6 +759,12 @@ function editPhoto(index){
   height: 20px;
   margin-left: 8px;
   border: 1px solid #000000;
+}
+
+.color-swatch-2 {
+  width: 30px;
+  height: 24px;
+  margin-top: 7px;
 }
 
 .loading-overlay {

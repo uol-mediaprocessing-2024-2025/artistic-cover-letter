@@ -6,7 +6,54 @@ import numpy as np
 from matplotlib import pyplot as plt
 from sklearn.cluster import KMeans
 
+def cluster_photos(photo_colors):
+    distance_matrix = np.zeros((len(photo_colors), len(photo_colors)))
 
+    print("Calculating distance matrix... ")
+    for i in range(len(photo_colors)):
+        for j in range(i, len(photo_colors)):
+            if i == j:
+                distance_matrix[i, j] = 0
+            else:
+                distance = rate_photo_pairing(photo_colors[i], photo_colors[j])
+                distance_matrix[i, j] = distance
+                distance_matrix[j, i] = distance  # Matrix symmetry
+
+    print("Performing clustering... ")
+    cluster_count = 3
+
+    kmeans = KMeans(n_clusters=cluster_count)
+    cluster_assignments = kmeans.fit_predict(distance_matrix)
+    cluster_centers = kmeans.cluster_centers_
+    closest_points = find_closest_points(cluster_centers, distance_matrix)
+
+    groups = []
+    for integer in range(0, cluster_count):
+        cluster_group = []
+        for index in range(0, len(cluster_assignments)):
+            if cluster_assignments[index] == integer:
+                cluster_group.append(index)
+        groups.append(cluster_group)
+
+    schemes = []
+    for index in closest_points:
+        colors = photo_colors[index]
+        hex_colors = []
+        for color in colors:
+            hex_colors.append('#{:02x}{:02x}{:02x}'.format(color[0], color[1], color[2]))
+        schemes.append(hex_colors)
+    print("Done!")
+    return schemes, groups
+
+    # Takes cluster centers and uses the distance matrix to find the center cluster element.
+    # Written by Bing AI
+def find_closest_points(cluster_centers, distance_matrix):
+    closest_points = []
+    for center in cluster_centers:
+        distances = np.linalg.norm(distance_matrix - center, axis=1)
+        closest_point = np.argmin(distances)
+        closest_points.append(closest_point)
+    return closest_points
 
 # takes the input of all prominent colors in all images and uses k-means clustering
 # to find n number of colors where n is equal to the number of images.
