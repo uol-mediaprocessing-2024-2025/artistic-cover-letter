@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 
 from backend.src.ColorSchemes import generate_constant_value, get_frequent_colors, \
-    generate_color_schemes, generate_hsv_variations, rate_color_pairing, rate_photo_pairing, rate_color_scheme
+    generate_color_schemes, rate_color_pairing, rate_photo_pairing, rate_color_scheme
 from backend.src.PhotoAnalysis import getSubjects
 from backend.src.image_processing import calcBackgroundBleed, calcDropshadow, calcInnerShadow, circular_kernel, \
     resizeImage
@@ -48,25 +48,16 @@ def main():
 
     plot_colors(frequent_colors)
 
-    # schemes, rating = generate_color_schemes(color, photo_colors, 0)
+    #score_final, indices = rate_color_scheme(color_scheme, photo_colors, 5)
+    best_schemes_sorted, all_scores_sorted = generate_color_schemes(frequent_colors[5], photo_colors, 5)
 
-    color1 = np.array([146, 144, 29])
+    print(best_schemes_sorted)
+    print(all_scores_sorted)
 
-    color_scheme = []
-    color_scheme.append(color1)
-    color_scheme.append(color1)
-    color_scheme.append(color1)
-    color_scheme.append(color1)
+    for index in best_schemes_sorted[0]:
+        plt.imshow(images[index])
+        plt.show()
 
-    plot_colors(color_scheme)
-
-    score_final, indices = rate_color_scheme(color_scheme, photo_colors, 5)
-
-    print(score_final)
-    print(indices)
-
-    for index in indices:
-        plot_colors(photo_colors[index])
 
 
 

@@ -22,7 +22,6 @@ def get_frequent_colors(colors):
 # a score to rate how well it fits the actual photos.
 def generate_color_schemes(frequent_color, photo_colors, photo_count):
     schemes = []
-    rating = []
     # Generate color schemes
     for scheme in generate_hsv_variations(frequent_color, 0):
         schemes.append(scheme)
@@ -31,9 +30,15 @@ def generate_color_schemes(frequent_color, photo_colors, photo_count):
     for scheme in generate_hsv_variations(frequent_color, 2):
         schemes.append(scheme)
 
-    # Assign photos to color schemes and rate them
-    #rate_color_scheme(schemes[0], photo_colors, photo_count)
-    return schemes, rating
+    all_scores = []
+    best_schemes = []
+    for i, color_scheme in enumerate(schemes):
+        score_final, indices = rate_color_scheme(color_scheme, photo_colors, photo_count)
+        all_scores.append(score_final)
+        best_schemes.append(indices)
+    combined_sorted = sorted(zip(all_scores, best_schemes), reverse=True)
+    all_scores_sorted, best_schemes_sorted = map(list, zip(*combined_sorted))
+    return best_schemes_sorted, all_scores_sorted
 
 # This method rates a color scheme based on colors from a number of photos.
 # color_scheme: a generated scheme of 5 colors
