@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 
 from backend.src.ColorSchemes import generate_constant_value, get_frequent_colors, \
-    generate_color_schemes, rate_color_pairing, rate_photo_pairing, rate_color_scheme
+    generate_color_schemes, rate_color_pairing, rate_photo_pairing, rate_color_scheme, plot_colors
 from backend.src.PhotoAnalysis import getSubjects
 from backend.src.image_processing import calcBackgroundBleed, calcDropshadow, calcInnerShadow, circular_kernel, \
     resizeImage
@@ -49,14 +49,35 @@ def main():
     plot_colors(frequent_colors)
 
     #score_final, indices = rate_color_scheme(color_scheme, photo_colors, 5)
-    best_schemes_sorted, all_scores_sorted = generate_color_schemes(frequent_colors[5], photo_colors, 5)
 
-    print(best_schemes_sorted)
-    print(all_scores_sorted)
+    top_schemes_photos = []
+    top_schemes_pallet = []
+    top_schemes_scores = []
 
-    for index in best_schemes_sorted[0]:
+    for frequent_color in frequent_colors:
+        #frequent_color = np.array([73, 206, 255])
+        print("Running color...")
+        best_schemes_photos, best_schemes_pallet, all_scores_sorted = generate_color_schemes(frequent_color, photo_colors, 5)
+        tmp1 = best_schemes_photos
+        tmp2 = best_schemes_pallet
+        tmp3 = all_scores_sorted
+
+    for element in tmp1:
+        top_schemes_photos.append(element)
+    for element in tmp2:
+        top_schemes_pallet.append(element)
+    for element in tmp3:
+        top_schemes_scores.append(element)
+
+    combined_sorted = sorted(zip(top_schemes_scores, top_schemes_photos, top_schemes_pallet), reverse=True)
+    top_schemes_scores, top_schemes_photos, top_schemes_pallet = map(list, zip(*combined_sorted))
+
+    for index in top_schemes_photos[0]:
         plt.imshow(images[index])
         plt.show()
+
+    for scheme in best_schemes_pallet:
+        plot_colors(scheme)
 
 
 
@@ -216,12 +237,6 @@ def oklab_to_rgb(oklab):
 
     return np.clip(np.array([r, g, b]) * 255, 0, 255).astype(np.uint8)
 
-
-# Plot the colors as bar chart for testing. Bing AI Method
-def plot_colors(colors):
-    fig, ax = plt.subplots(1, 1, figsize=(8, 2), subplot_kw=dict(xticks=[], yticks=[], frame_on=False))
-    ax.imshow([colors], aspect='auto')
-    plt.show()
 
 
 def main2():

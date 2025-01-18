@@ -1,7 +1,11 @@
+from time import sleep
+
 import colorspacious as cs
 import matplotlib.colors as matcolors
 import numpy as np
+from matplotlib import pyplot as plt
 from sklearn.cluster import KMeans
+
 
 
 # takes the input of all prominent colors in all images and uses k-means clustering
@@ -32,13 +36,15 @@ def generate_color_schemes(frequent_color, photo_colors, photo_count):
 
     all_scores = []
     best_schemes = []
+    best_schemes_pallet = []
     for i, color_scheme in enumerate(schemes):
         score_final, indices = rate_color_scheme(color_scheme, photo_colors, photo_count)
         all_scores.append(score_final)
         best_schemes.append(indices)
-    combined_sorted = sorted(zip(all_scores, best_schemes), reverse=True)
-    all_scores_sorted, best_schemes_sorted = map(list, zip(*combined_sorted))
-    return best_schemes_sorted, all_scores_sorted
+        best_schemes_pallet.append(color_scheme)
+    combined_sorted = sorted(zip(all_scores, best_schemes, best_schemes_pallet), reverse=True)
+    all_scores_sorted, best_schemes_sorted, best_schemes_pallet_sorted = map(list, zip(*combined_sorted))
+    return best_schemes_sorted, best_schemes_pallet_sorted, all_scores_sorted
 
 # This method rates a color scheme based on colors from a number of photos.
 # color_scheme: a generated scheme of 5 colors
@@ -76,7 +82,9 @@ def rate_color_pairing(color_scheme, photo_color):
     photo_color_lab = cs.cspace_convert(photo_color, "sRGB1", "CIELab")
     color_scheme_lab = cs.cspace_convert(color_scheme, "sRGB1", "CIELab")
     distance = np.linalg.norm(color_scheme_lab - photo_color_lab)
-    score = 1/distance
+    score = 12800-distance
+    if score < 1:
+        print("WARNING! " + str(distance))
     return score
 
 
@@ -92,14 +100,14 @@ def generate_hsv_variations(color, constant_dimension):
     hsv = np.delete(hsv, constant_dimension)
     variable1 = hsv[0]
     variable2 = hsv[1]
-    depth = 32
+    depth = 8
     colors = []
     for variable1_offset in range(1,depth):
-        variable1_offset = variable1_offset / depth
+        variable1_offset = (variable1_offset / depth)/5
         # Ensure that variable 1 is within 0 and 1
         if ((variable1 + (-2) * variable1_offset) > 0) & (variable1 + 2 * variable1_offset < 1):
             for variable2_offset in range(1,depth):
-                variable2_offset = variable2_offset / depth
+                variable2_offset = (variable2_offset / depth)/5
                 # Ensure that variable 2 is within 0 and 1
                 if ((variable2 + (-2) * variable2_offset) > 0) & (variable2 + 2 * variable2_offset < 1):
                     color_scheme = []
@@ -133,3 +141,9 @@ def generate_constant_value(value):
             print(rgb)
             colors.append(rgb)
     return colors
+
+# Plot the colors as bar chart for testing. Bing AI Method
+def plot_colors(colors):
+    fig, ax = plt.subplots(1, 1, figsize=(8, 2), subplot_kw=dict(xticks=[], yticks=[], frame_on=False))
+    ax.imshow([colors], aspect='auto')
+    plt.show()
