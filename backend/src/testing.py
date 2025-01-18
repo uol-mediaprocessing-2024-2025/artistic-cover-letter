@@ -9,6 +9,8 @@ from fastapi import FastAPI, UploadFile, File, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 
+from backend.src.ColorSchemes import generate_constant_value, get_frequent_colors, \
+    generate_color_schemes, generate_hsv_variations, rate_color_pairing, rate_photo_pairing, rate_color_scheme
 from backend.src.PhotoAnalysis import getSubjects
 from backend.src.image_processing import calcBackgroundBleed, calcDropshadow, calcInnerShadow, circular_kernel, \
     resizeImage
@@ -37,11 +39,42 @@ def main():
 
     images = load_images_from_folder("C:/Users/Simon/Downloads/examplePhotos sorted/")
 
-    for image in images:
-        plt.imshow(image)
-        plt.show()
-        colors = get_image_colors(image)
-        plot_colors(colors)
+    print("Extracting image colors... ")
+    with ThreadPoolExecutor() as executor:
+        photo_colors = list(executor.map(get_image_colors, images))
+
+    print("Finding color schemes... ")
+    frequent_colors = get_frequent_colors(np.array(photo_colors))
+
+    plot_colors(frequent_colors)
+
+    # schemes, rating = generate_color_schemes(color, photo_colors, 0)
+
+    color1 = np.array([146, 144, 29])
+
+    color_scheme = []
+    color_scheme.append(color1)
+    color_scheme.append(color1)
+    color_scheme.append(color1)
+    color_scheme.append(color1)
+
+    plot_colors(color_scheme)
+
+    score_final, indices = rate_color_scheme(color_scheme, photo_colors, 5)
+
+    print(score_final)
+    print(indices)
+
+    for index in indices:
+        plot_colors(photo_colors[index])
+
+
+
+
+
+    #schemes, rating = generate_color_schemes(frequent_colors[0], photo_colors)
+
+    #plot_colors(schemes[0])
 
 
 
@@ -70,7 +103,7 @@ def color_scheme_distance(colors_1, colors_2):
 
 # Uses an Algorithm by Kamal Joshi to find prominent colors.
 # https://hackernoon.com/extract-prominent-colors-from-an-image-using-machine-learning-vy2w33rx
-def get_image_colors(image, k=24):
+def get_image_colors(image):
     # Resize to 128x128 for performance
     image = image.resize((128,128))
     image = np.array(image)
@@ -80,7 +113,7 @@ def get_image_colors(image, k=24):
     lab_pixels = cs.cspace_convert(srgb_pixels, "sRGB1", "CIELab")
 
     # Run k-means clustering
-    kmeans = KMeans(n_clusters=k)
+    kmeans = KMeans(n_clusters=24)
     kmeans.fit(lab_pixels)
 
     # Get the cluster centers (dominant colors)
