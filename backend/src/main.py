@@ -41,18 +41,19 @@ app.add_middleware(
 @app.post("/analyze-photos")
 async def analyze_photos(photos: list[UploadFile] = File(...)):
     images = []
+    print("Loading photos...")
     for photo in photos:
         data = await photo.read()
         image = Image.open(io.BytesIO(data))
-        image = image.resize((128,128)) # Resize to 128x128 for performance
+        image = resizeImage(image, 128)
         images.append(image)
+    print("Analyzing colors...")
     with ThreadPoolExecutor() as executor:
         photo_colors = list(executor.map(get_image_colors, images))
     schemes, groups = cluster_photos(photo_colors)
     content = []
     for scheme in schemes:
         content.append(scheme)
-    print(schemes)
     for group in groups:
         content.append(group)
     return JSONResponse(content=content)

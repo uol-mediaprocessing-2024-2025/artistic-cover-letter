@@ -25,7 +25,7 @@ const bleedintensity = ref(50);
 const bleedradius = ref(15);
 // Inner shadow
 const shadowradius = ref(15);
-const shadowintensity = ref(25);
+const shadowintensity = ref(50);
 const shadowcolor = ref("#000000");
 const shadowcolorauto = ref(true);
 // Outlines
@@ -107,6 +107,8 @@ const analyzePhotos = async () => {
     } finally {
     isLoading.value = false;
     alertMessage.value = null;
+    selectedScheme.value = 0
+    await updateColorScheme()
   }
 }
 
@@ -366,7 +368,6 @@ const handleFileUpload = async() => {
   });
   try {
     await analyzePhotos()
-    await updateColorScheme()
   } finally {
     newlyUploadedFiles.value = null;
   }
@@ -554,7 +555,6 @@ function editPhoto(index){
           </v-expansion-panel-text>
         </v-expansion-panel>
       </v-expansion-panels>
-      <br>
       <v-expansion-panels v-model="colorSchemePanel">
         <v-expansion-panel title="Color Schemes">
           <v-expansion-panel-text>
@@ -569,8 +569,8 @@ function editPhoto(index){
                   </div>
                 </v-col>
               </v-row>
-
             </v-radio-group>
+            <v-btn @click="analyzePhotos" :disabled="isLoading" prepend-icon="mdi-creation">Analyze Photo colors</v-btn>
           </v-expansion-panel-text>
         </v-expansion-panel>
       </v-expansion-panels>
@@ -739,6 +739,10 @@ function editPhoto(index){
   padding-right: 15px;
   padding-top: 3px;
   padding-bottom: 3px;
+}
+
+.v-expansion-panels {
+  margin-top: 5px
 }
 
 .v-card-title{

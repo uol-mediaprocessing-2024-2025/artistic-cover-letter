@@ -8,7 +8,6 @@ from sklearn.cluster import KMeans
 
 def cluster_photos(photo_colors):
     distance_matrix = np.zeros((len(photo_colors), len(photo_colors)))
-
     print("Calculating distance matrix... ")
     for i in range(len(photo_colors)):
         for j in range(i, len(photo_colors)):
@@ -20,9 +19,9 @@ def cluster_photos(photo_colors):
                 distance_matrix[j, i] = distance  # Matrix symmetry
 
     print("Performing clustering... ")
-    cluster_count = 3
+    cluster_count = int(len(photo_colors)/10)
 
-    kmeans = KMeans(n_clusters=cluster_count)
+    kmeans = KMeans(n_clusters=cluster_count, init='k-means++', n_init=128, max_iter=256)
     cluster_assignments = kmeans.fit_predict(distance_matrix)
     cluster_centers = kmeans.cluster_centers_
     closest_points = find_closest_points(cluster_centers, distance_matrix)
