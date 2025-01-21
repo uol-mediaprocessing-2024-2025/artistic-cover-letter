@@ -81,7 +81,7 @@ def get_image_colors(image):
     lab_pixels = cs.cspace_convert(srgb_pixels, "sRGB1", "CIELab")
 
     # Run k-means clustering
-    kmeans = KMeans(n_clusters=24, init='k-means++', n_init=20, max_iter=512, random_state=42)
+    kmeans = KMeans(n_clusters=24, init='k-means++', n_init=14, max_iter=450, random_state=42)
     kmeans.fit(lab_pixels)
 
     # Get the cluster centers (dominant colors)
