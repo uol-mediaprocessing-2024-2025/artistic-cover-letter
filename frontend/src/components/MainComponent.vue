@@ -485,14 +485,16 @@ function editPhoto(index){
     </v-card>
     <!-- VIEWPORT -->
     <v-card elevation="2" class="pa-4 card-container">
-        <!--<v-progress-linear v-if="isLoading" indeterminate color="primary" size="50"></v-progress-linear> -->
         <!-- Wrapper div for positioning the loading overlay -->
         <div class="image-wrapper">
           <v-img v-if="fullImage" :src="fullImage" max-height="450" :disabled="!fullImage" :style="{ backgroundColor: backgroundcolor.valueOf()}">
           </v-img>
           <div class="d-flex align-center justify-center" v-else></div>
           <!-- Loading overlay with centered spinner -->
-          <div v-if="isLoading" class="loading-overlay" :style="{ backgroundColor: backgroundcolor.valueOf()}">
+          <div class="loading-overlay">
+            <v-progress-circular v-if="isLoading" indeterminate color="primary" size="40"></v-progress-circular>
+          </div>
+          <div v-if="isLoading" class="loading-overlay" :style="{ backgroundColor: backgroundcolor.valueOf(), opacity: 0.4}">
           </div>
         </div>
       <v-alert v-if="alertMessage" type="info"> {{ alertMessage }}</v-alert>
@@ -666,19 +668,10 @@ function editPhoto(index){
   left: 0;
   right: 0;
   bottom: 0;
-  opacity: 0.2;
   display: flex;
   justify-content: center;
   align-items: center;
   border-radius: 4px;
-}
-
-.v-progress-linear {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  opacity: 0.9;
 }
 
 .reset-btn {
