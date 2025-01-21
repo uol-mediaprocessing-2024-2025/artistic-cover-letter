@@ -20,6 +20,7 @@ def cluster_photos(photo_colors):
 
     print("Performing clustering... ")
     cluster_count = int(len(photo_colors)/10)
+    if cluster_count < 1: cluster_count = 1
 
     kmeans = KMeans(n_clusters=cluster_count, init='k-means++', n_init=128, max_iter=256)
     cluster_assignments = kmeans.fit_predict(distance_matrix)
