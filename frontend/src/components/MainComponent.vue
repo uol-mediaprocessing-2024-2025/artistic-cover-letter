@@ -41,12 +41,9 @@ const textSuggestions = ref(["Holiday","Vacation"]);
 const fontSuggestions = ref(["Antonio", "Impact", "Bahnschrift", "Harvest", "Helvetica", "Raleway", "Tahoma", "Yu Gothic"])
 
 // Image layers
+const letterLayer = ref(null);
 const fullImage = ref(null);
-const layer_0 = ref(null);
-const layer_1 = ref(null);
-const layer_2 = ref(null);
-const layer_3 = ref(null);
-const layer_4 = ref(null);
+
 
 // Photo uploads
 const newlyUploadedFiles = ref([]);
@@ -188,15 +185,11 @@ const updateImages = (imageArray) => {
       const blob = new Blob([new Uint8Array(array)], { type: 'image/png' });
       blobArray[index] = URL.createObjectURL(blob);
     });
-  fullImage.value = blobArray[0];
-  layer_0.value = blobArray[1];
-  layer_1.value = blobArray[2];
-  layer_2.value = blobArray[3];
-  layer_3.value = blobArray[4];
-  layer_4.value = blobArray[5];
+  letterLayer.value = blobArray[0];
+  fullImage.value = blobArray[1];
 }
 
-const changeDropshadow = async () => {
+const applyEffects = async () => {
   if (uploadedPhotos.value.length === 0){
     alertMessage.value = "Please upload some photos to continue.";
     return;
@@ -207,48 +200,20 @@ const changeDropshadow = async () => {
   errorMessage.value = null;
   try {
     const formData = new FormData();
-    formData.append('radius', dropshadowradius.valueOf().value);
-    formData.append('intensity', dropshadowintensity.valueOf().value);
-    formData.append('color', dropshadowcolor.valueOf().value);
+    formData.append('bleed_radius', bleedradius.valueOf().value);
+    formData.append('bleed_intensity', bleedintensity.valueOf().value);
+    formData.append('dropshadow_radius', dropshadowradius.valueOf().value);
+    formData.append('dropshadow_intensity', dropshadowintensity.valueOf().value);
+    formData.append('dropshadow_color', dropshadowcolor.valueOf().value);
+    formData.append('shadow_radius', shadowradius.valueOf().value);
+    formData.append('shadow_intensity', shadowintensity.valueOf().value);
+    formData.append('shadow_color', shadowcolor.valueOf().value);
+    formData.append('outline_width', outlinewidth.valueOf().value);
+    formData.append('outline_color', outlinecolor.valueOf().value);
     formData.append('resolution', resolution.valueOf().value);
     // Convert Images to blobs
-    formData.append('layer0_blob', await fetch(layer_0.value).then(res => res.blob()));
-    formData.append('layer2_blob', await fetch(layer_2.value).then(res => res.blob()));
-    formData.append('layer3_blob', await fetch(layer_3.value).then(res => res.blob()));
-    formData.append('layer4_blob', await fetch(layer_4.value).then(res => res.blob()));
-
-    const response = await axios.post(`${store.apiUrl}/dropshadow`, formData, {});
-    const imageArray = response.data;
-    updateImages(imageArray);
-  } catch (error) {
-    errorMessage.value = "Internal server error.";
-    console.error("Failure:", error);
-  } finally {
-    isLoading.value = false;
-  }
-}
-
-const changeBackgroundBleed = async () => {
-  if (uploadedPhotos.value.length === 0){
-    alertMessage.value = "Please upload some photos to continue.";
-    return;
-  }
-  if (resolution.valueOf().value > 250){
-    isLoading.value = true;
-  }
-  errorMessage.value = null;
-  try {
-    const formData = new FormData();
-    formData.append('radius', bleedradius.valueOf().value);
-    formData.append('intensity', bleedintensity.valueOf().value);
-    formData.append('resolution', resolution.valueOf().value);
-    // Convert Images to blobs
-    formData.append('layer1_blob', await fetch(layer_1.value).then(res => res.blob()));
-    formData.append('layer2_blob', await fetch(layer_2.value).then(res => res.blob()));
-    formData.append('layer3_blob', await fetch(layer_3.value).then(res => res.blob()));
-    formData.append('layer4_blob', await fetch(layer_4.value).then(res => res.blob()));
-
-    const response = await axios.post(`${store.apiUrl}/background-bleed`, formData, {});
+    formData.append('letter_layer_blob', await fetch(letterLayer.value).then(res => res.blob()));
+    const response = await axios.post(`${store.apiUrl}/apply-effects`, formData, {});
     const imageArray = response.data;
     updateImages(imageArray);
   } catch (error) {
@@ -285,67 +250,6 @@ const updateTextSuggestions = async () => {
   } finally {
     isLoading.value = false;
     alertMessage.value = null;
-  }
-}
-
-const changeInnerShadow = async () => {
-  if (uploadedPhotos.value.length === 0){
-    alertMessage.value = "Please upload some photos to continue.";
-    return;
-  }
-  if (resolution.valueOf().value > 250){
-    isLoading.value = true;
-  }
-  errorMessage.value = null;
-  try {
-    const formData = new FormData();
-    formData.append('radius', shadowradius.valueOf().value);
-    formData.append('intensity', shadowintensity.valueOf().value);
-    formData.append('resolution', resolution.valueOf().value);
-    formData.append('color', shadowcolor.valueOf().value);
-    formData.append('layer0_blob', await fetch(layer_0.value).then(res => res.blob()));
-    formData.append('layer1_blob', await fetch(layer_1.value).then(res => res.blob()));
-    formData.append('layer2_blob', await fetch(layer_2.value).then(res => res.blob()));
-    formData.append('layer4_blob', await fetch(layer_4.value).then(res => res.blob()));
-
-    const response = await axios.post(`${store.apiUrl}/inner-shadow`, formData, {});
-    const imageArray = response.data;
-    updateImages(imageArray);
-  } catch (error) {
-    errorMessage.value = "Internal server error.";
-    console.error("Failure:", error);
-  } finally {
-    isLoading.value = false;
-  }
-}
-
-const changeOutline = async () => {
-  if (uploadedPhotos.value.length === 0){
-    alertMessage.value = "Please upload some photos to continue.";
-    return;
-  }
-  if (resolution.valueOf().value > 250){
-    isLoading.value = true;
-  }
-  errorMessage.value = null;
-  try {
-    const formData = new FormData();
-    formData.append('width', outlinewidth.valueOf().value);
-    formData.append('resolution', resolution.valueOf().value);
-    formData.append('color', outlinecolor.valueOf().value);
-    formData.append('layer0_blob', await fetch(layer_0.value).then(res => res.blob()));
-    formData.append('layer1_blob', await fetch(layer_1.value).then(res => res.blob()));
-    formData.append('layer2_blob', await fetch(layer_2.value).then(res => res.blob()));
-    formData.append('layer3_blob', await fetch(layer_3.value).then(res => res.blob()));
-
-    const response = await axios.post(`${store.apiUrl}/outline`, formData, {});
-    const imageArray = response.data;
-    updateImages(imageArray);
-  } catch (error) {
-    errorMessage.value = "Internal server error.";
-    console.error("Failure:", error);
-  } finally {
-    isLoading.value = false;
   }
 }
 
@@ -426,24 +330,28 @@ const keyDown = async (event) => {
 }
 
 async function updateShadows() {
+  let update = false
   if (themeState.isDark) {
     if (dropshadowcolorauto){
       dropshadowcolor.value = "#000000"
-      await changeDropshadow()
+      update = true
     }
     if (shadowcolorauto){
       shadowcolor.value = "#FFFFFF"
-      await changeInnerShadow()
+      update = true
     }
   } else {
     if (dropshadowcolorauto){
       shadowcolor.value = "#000000"
-      await changeInnerShadow()
+      update = true
     }
     if (shadowcolorauto){
       dropshadowcolor.value = "#FFFFFF"
-      await changeDropshadow()
+      update = true
     }
+  }
+  if (update){
+    await applyEffects()
   }
 }
 
@@ -599,33 +507,33 @@ function editPhoto(index){
       <v-expansion-panels>
         <v-expansion-panel title="Dropshadow">
           <v-expansion-panel-text>
-            <v-slider v-model="dropshadowintensity" label="Intensity" :step="1" :max=100 :min=0 @end="changeDropshadow" :disabled="isLoading">
+            <v-slider v-model="dropshadowintensity" label="Intensity" :step="1" :max=100 :min=0 @end="applyEffects" :disabled="isLoading">
               <template v-slot:append>
-                <v-text-field v-model="dropshadowintensity" density="compact" style="width: 100px" type="number" hide-details single-line @change="changeDropshadow" :disabled="isLoading"
+                <v-text-field v-model="dropshadowintensity" density="compact" style="width: 100px" type="number" hide-details single-line @change="applyEffects" :disabled="isLoading"
                 ></v-text-field>
               </template>
             </v-slider>
-            <v-slider v-model="dropshadowradius" label="Radius" :step="1" :max=30 :min=1 @end="changeDropshadow" :disabled="isLoading">
+            <v-slider v-model="dropshadowradius" label="Radius" :step="1" :max=30 :min=1 @end="applyEffects" :disabled="isLoading">
               <template v-slot:append>
-                <v-text-field v-model="dropshadowradius" density="compact" style="width: 100px" type="number" hide-details single-line @change="changeDropshadow" :disabled="isLoading"></v-text-field>
+                <v-text-field v-model="dropshadowradius" density="compact" style="width: 100px" type="number" hide-details single-line @change="applyEffects" :disabled="isLoading"></v-text-field>
               </template>
             </v-slider>
             <v-checkbox v-model="dropshadowcolorauto" @update:model-value="updateShadows()" label="Adjust color to background"></v-checkbox>
-            <v-color-picker v-model="dropshadowcolor" @update:model-value="changeDropshadow" class="ma-2" :disabled="isLoading || dropshadowcolorauto" hide-canvas :show-swatches="!dropshadowcolorauto" :hide-inputs="dropshadowcolorauto" mode="rgb" :swatches="[['#000000', '#FFFFFF']]"></v-color-picker>
+            <v-color-picker v-model="dropshadowcolor" @update:model-value="applyEffects" class="ma-2" :disabled="isLoading || dropshadowcolorauto" hide-canvas :show-swatches="!dropshadowcolorauto" :hide-inputs="dropshadowcolorauto" mode="rgb" :swatches="[['#000000', '#FFFFFF']]"></v-color-picker>
           </v-expansion-panel-text>
         </v-expansion-panel>
 
-        <v-expansion-panel title="Bleed into background">
+        <v-expansion-panel title="Bleed colors into background">
           <v-expansion-panel-text>
-            <v-slider v-model="bleedintensity" label="Intensity" :step="1" :max=100 :min=0 @end="changeBackgroundBleed" :disabled="isLoading">
+            <v-slider v-model="bleedintensity" label="Intensity" :step="1" :max=100 :min=0 @end="applyEffects" :disabled="isLoading">
               <template v-slot:append>
-                <v-text-field v-model="bleedintensity" density="compact" style="width: 100px" type="number" hide-details single-line @change="changeBackgroundBleed" :disabled="isLoading"
+                <v-text-field v-model="bleedintensity" density="compact" style="width: 100px" type="number" hide-details single-line @change="applyEffects" :disabled="isLoading"
                 ></v-text-field>
               </template>
             </v-slider>
-            <v-slider v-model="bleedradius" label="Radius" :step="1" :max=30 :min=1 @end="changeBackgroundBleed" :disabled="isLoading">
+            <v-slider v-model="bleedradius" label="Radius" :step="1" :max=30 :min=1 @end="applyEffects" :disabled="isLoading">
               <template v-slot:append>
-                <v-text-field v-model="bleedradius" density="compact" style="width: 100px" type="number" hide-details single-line @change="changeBackgroundBleed" :disabled="isLoading"></v-text-field>
+                <v-text-field v-model="bleedradius" density="compact" style="width: 100px" type="number" hide-details single-line @change="applyEffects" :disabled="isLoading"></v-text-field>
               </template>
             </v-slider>
           </v-expansion-panel-text>
@@ -633,52 +541,33 @@ function editPhoto(index){
 
         <v-expansion-panel title="Inner shadow">
           <v-expansion-panel-text>
-            <v-slider v-model="shadowintensity" label="Intensity" :step="1" :max=100 :min=0 @end="changeInnerShadow" :disabled="isLoading">
+            <v-slider v-model="shadowintensity" label="Intensity" :step="1" :max=100 :min=0 @end="applyEffects" :disabled="isLoading">
               <template v-slot:append>
-                <v-text-field v-model="shadowintensity" density="compact" style="width: 100px" type="number" hide-details single-line @change="changeInnerShadow" :disabled="isLoading"></v-text-field>
+                <v-text-field v-model="shadowintensity" density="compact" style="width: 100px" type="number" hide-details single-line @change="applyEffects" :disabled="isLoading"></v-text-field>
               </template>
             </v-slider>
-            <v-slider v-model="shadowradius" label="Radius" :step="1" :max=30 :min=1 @end="changeInnerShadow" :disabled="isLoading">
+            <v-slider v-model="shadowradius" label="Radius" :step="1" :max=30 :min=1 @end="applyEffects" :disabled="isLoading">
               <template v-slot:append>
-                <v-text-field v-model="shadowradius" density="compact" style="width: 100px" type="number" hide-details single-line @change="changeInnerShadow" :disabled="isLoading"
+                <v-text-field v-model="shadowradius" density="compact" style="width: 100px" type="number" hide-details single-line @change="applyEffects" :disabled="isLoading"
                 ></v-text-field>
               </template>
             </v-slider>
             <v-checkbox v-model="shadowcolorauto" @update:model-value="updateShadows()" label="Adjust color to background"></v-checkbox>
-            <v-color-picker v-model="shadowcolor" @update:model-value="changeInnerShadow" class="ma-2" :disabled="isLoading || shadowcolorauto" hide-canvas :show-swatches="!shadowcolorauto" :hide-inputs="shadowcolorauto" mode="rgb" :swatches="[['#000000', '#FFFFFF']]"></v-color-picker>
+            <v-color-picker v-model="shadowcolor" @update:model-value="applyEffects" class="ma-2" :disabled="isLoading || shadowcolorauto" hide-canvas :show-swatches="!shadowcolorauto" :hide-inputs="shadowcolorauto" mode="rgb" :swatches="[['#000000', '#FFFFFF']]"></v-color-picker>
           </v-expansion-panel-text>
         </v-expansion-panel>
 
         <v-expansion-panel title="Outline">
           <v-expansion-panel-text>
-            <v-slider v-model="outlinewidth" label="Width" :step="1" :max=100 :min=0 @end="changeOutline" :disabled="isLoading">
+            <v-slider v-model="outlinewidth" label="Width" :step="1" :max=100 :min=0 @end="applyEffects" :disabled="isLoading">
               <template v-slot:append>
-                <v-text-field v-model="outlinewidth" density="compact" style="width: 100px" type="number" hide-details single-line @change="changeOutline" :disabled="isLoading"></v-text-field>
+                <v-text-field v-model="outlinewidth" density="compact" style="width: 100px" type="number" hide-details single-line @change="applyEffects" :disabled="isLoading"></v-text-field>
               </template>
             </v-slider>
-            <v-color-picker v-model="outlinecolor" hide-canvas @update:model-value="changeOutline" class="ma-2" :disabled="isLoading" show-swatches mode="rgb" :swatches="[['#000000', '#FFFFFF']]"></v-color-picker>
-          </v-expansion-panel-text>
-        </v-expansion-panel>
-
-      </v-expansion-panels>
-      <!-- debug
-      <v-expansion-panels>
-        <v-expansion-panel title="Layers (Debug)">
-          <v-expansion-panel-text>
-              layer0:
-              <v-img v-if="layer_0" :src="layer_0" max-height="150"></v-img>
-              layer1:
-              <v-img v-if="layer_1" :src="layer_1" max-height="150"></v-img>
-              layer2:
-              <v-img v-if="layer_2" :src="layer_2" max-height="150"></v-img>
-              layer3:
-              <v-img v-if="layer_3" :src="layer_3" max-height="150"></v-img>
-              layer4:
-              <v-img v-if="layer_4" :src="layer_4" max-height="150"></v-img>
+            <v-color-picker v-model="outlinecolor" hide-canvas @update:model-value="applyEffects" class="ma-2" :disabled="isLoading" show-swatches mode="rgb" :swatches="[['#000000', '#FFFFFF']]"></v-color-picker>
           </v-expansion-panel-text>
         </v-expansion-panel>
       </v-expansion-panels>
-      -->
     </v-card>
     <v-card elevation="2" class="pa-4 card-container">
       <v-card-title class="d-flex align-center">

@@ -25,16 +25,12 @@ def generate_letter_layer(text, font, resolution, images):
     print("Generating letters with text " + str(text) + " and resolution " + str(resolution))
     blank_image, letters, coordinate_x = generate_letter_mask(text, font, resolution)
 
-    print(len(images))
-    print(len(letters))
-
+    # Janky solution to bypass image loading problem
     index = 0
     while len(letters) > len(images):
         images.append(images[index].copy())
         index = (index + 1)%len(letters)
 
-    print(len(images))
-    print(len(letters))
     print("Texturing letters...")
     with ThreadPoolExecutor() as executor:
         textured_letters = list(executor.map(texture_letter, images * len(letters), letters))
