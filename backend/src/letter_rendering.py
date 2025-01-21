@@ -147,4 +147,10 @@ def get_fonts():
             font_families.append(font_name)
     font_data = sorted((fontmanager.FontProperties(fname=font).get_name(), font) for font in font_files)
     sorted_font_families, sorted_font_files = zip(*font_data)
-    return sorted_font_files, sorted_font_families
+    final_font_families = []
+    final_font_files = []
+    for index in range(len(sorted_font_families)):
+        if sorted_font_families[index] not in final_font_families:
+            final_font_families.append(sorted_font_families[index])
+            final_font_files.append(sorted_font_files[index])
+    return final_font_files, final_font_families
