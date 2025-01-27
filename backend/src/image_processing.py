@@ -47,18 +47,26 @@ def calcBackgroundBleed(layer2, radius, intensity, resolution):
     if intensity < 1:
         return Image.new('RGBA', layer2.size, (0, 0, 0, 0))
     print("Applying background bleed with radius " + str(radius) + " and intensity " + str(intensity))
-    correctedradius = int(radius*(resolution/200))
-    #dilation is a huge bottleneck at higher resolutions and not entirely consistent across resolutions
-    dilated = Image.fromarray(cv2.dilate(np.array(layer2), circular_kernel(correctedradius)))
+    downscalefactor = 2
+    if resolution >= 600:
+        downscalefactor = 4
+        if resolution >= 1200:
+            downscalefactor = 8
+            if resolution >= 2400:
+                downscalefactor = 16
+    downscaled = layer2.resize((int(layer2.width/downscalefactor), int(layer2.height/downscalefactor)), Image.Resampling.NEAREST)
+    correctedradius = int((radius*(resolution/200))/downscalefactor)
+    dilated = Image.fromarray(cv2.dilate(np.array(downscaled), circular_kernel(correctedradius)))
     r1, g1, b1, a1 = dilated.split()
-    r2, g2, b2, a2 = layer2.split()
+    r2, g2, b2, a2 = downscaled.split()
     background = Image.merge("RGBA", (r1, g1, b1, a2))
     blurred_background = background.filter(ImageFilter.GaussianBlur(radius=correctedradius))
     r3, g3, b3, a3 = blurred_background.split()
     multiplied_alpha = np.array(a3) * (intensity/100 + radius/100)
     clipped_alpha = np.clip(multiplied_alpha, 0, 255).astype(np.uint8)
     final = Image.merge("RGBA", (r3, g3, b3, Image.fromarray(clipped_alpha, "L")))
-    return final
+    final_upscaled = final.resize(layer2.size, Image.Resampling.BILINEAR)
+    return final_upscaled
 
 def calcInnerShadow(layer2, radius, intensity, color, resolution):
     if intensity < 1:

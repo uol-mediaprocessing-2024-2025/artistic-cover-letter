@@ -1,4 +1,5 @@
 import base64
+import concurrent
 import json
 from concurrent.futures import ThreadPoolExecutor
 from typing import List
@@ -81,37 +82,54 @@ async def submit_text(
         image = Image.open(io.BytesIO(data))
         images.append(image)
 
-    layer2 = generate_letter_layer(text, font, resolution, images)
-    layer0 = calcBackgroundBleed(layer2, bleed_radius, bleed_intensity, resolution)
-    layer1 = calcDropshadow(layer2, dropshadow_radius, dropshadow_intensity, dropshadow_color, resolution)
-    layer3 = calcInnerShadow(layer2, shadow_radius, shadow_intensity, shadow_color, resolution)
-    layer4 = calcOutline(layer2, outline_width, outline_color, resolution)
+    letter_layer = generate_letter_layer(text, font, resolution, images)
 
-    full = fullComposite(layer0, layer1, layer2, layer3, layer4)
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = [
+            executor.submit(calcBackgroundBleed, letter_layer, bleed_radius, bleed_intensity, resolution),
+            executor.submit(calcDropshadow, letter_layer, dropshadow_radius, dropshadow_intensity, dropshadow_color, resolution),
+            executor.submit(calcInnerShadow, letter_layer, shadow_radius, shadow_intensity, shadow_color, resolution),
+            executor.submit(calcOutline, letter_layer, outline_width, outline_color, resolution)
+        ]
+    layer0, layer1, layer3, layer4 = [f.result() for f in futures]
 
-    images_to_encode = [full, layer0, layer1, layer2, layer3, layer4]
+    full = fullComposite(layer0, layer1, letter_layer, layer3, layer4)
+
+    images_to_encode = [letter_layer, full]
     with ThreadPoolExecutor() as executor:
         encoded_images = list(executor.map(encodeImage, images_to_encode))
     return JSONResponse(content=encoded_images)
 
-@app.post("/background-bleed")
-async def background_bleed(
-        radius: int = Form(...),
-        intensity: int = Form(...),
+@app.post("/apply-effects")
+async def apply_effects(
+        bleed_radius: int = Form(...),
+        bleed_intensity: int = Form(...),
+        dropshadow_radius: int = Form(...),
+        dropshadow_intensity: int = Form(...),
+        dropshadow_color: str = Form(...),
+        shadow_radius: int = Form(...),
+        shadow_intensity: int = Form(...),
+        shadow_color: str = Form(...),
+        outline_width: int = Form(...),
+        outline_color: str = Form(...),
         resolution: int = Form(...),
-        layer1_blob: UploadFile = File(...),
-        layer2_blob: UploadFile = File(...),
-        layer3_blob: UploadFile = File(...),
-        layer4_blob: UploadFile = File(...),
+        letter_layer_blob: UploadFile = File(...),
 ):
-    layer1 = Image.open(io.BytesIO(await layer1_blob.read()))
-    layer2 = Image.open(io.BytesIO(await layer2_blob.read()))
-    layer3 = Image.open(io.BytesIO(await layer3_blob.read()))
-    layer4 = Image.open(io.BytesIO(await layer4_blob.read()))
+    letter_layer = Image.open(io.BytesIO(await letter_layer_blob.read()))
+    letter_layer.load()
 
-    layer0 = calcBackgroundBleed(layer2, radius, intensity, resolution)
-    full_image = fullComposite(layer0, layer1, layer2, layer3, layer4)
-    images_to_encode = [full_image, layer0, layer1, layer2, layer3, layer4]
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = [
+            executor.submit(calcBackgroundBleed, letter_layer, bleed_radius, bleed_intensity, resolution),
+            executor.submit(calcDropshadow, letter_layer, dropshadow_radius, dropshadow_intensity, dropshadow_color, resolution),
+            executor.submit(calcInnerShadow, letter_layer, shadow_radius, shadow_intensity, shadow_color, resolution),
+            executor.submit(calcOutline, letter_layer, outline_width, outline_color, resolution)
+        ]
+    layer0, layer1, layer3, layer4 = [f.result() for f in futures]
+
+    full = fullComposite(layer0, layer1, letter_layer, layer3, layer4)
+
+    images_to_encode = [letter_layer, full]
     with ThreadPoolExecutor() as executor:
         encoded_images = list(executor.map(encodeImage, images_to_encode))
     return JSONResponse(content=encoded_images)
@@ -119,7 +137,7 @@ async def background_bleed(
 # Encodes all images to send them back to the frontend
 def encodeImage(image):
     image_io = io.BytesIO()
-    image.save(image_io, format="PNG")
+    image.save(image_io, format="PNG", compress_level=1)
     image_io.seek(0)
     return base64.b64encode(image_io.getvalue()).decode('utf-8')
 
@@ -131,71 +149,6 @@ def fullComposite(layer0, layer1, layer2, layer3, layer4):
     layers01234 = alpha_composite(layers0123, layer4)
     return layers01234
 
-# Response to dropshadow request. Changes dropshadow.
-@app.post("/dropshadow")
-async def dropshadow(
-        radius: int = Form(...), intensity: int = Form(...), resolution: int = Form(...), color: str = Form(...),
-        layer0_blob: UploadFile = File(...),
-        layer2_blob: UploadFile = File(...),
-        layer3_blob: UploadFile = File(...),
-        layer4_blob: UploadFile = File(...),
-):
-    layer0 = Image.open(io.BytesIO(await layer0_blob.read()))
-    layer2 = Image.open(io.BytesIO(await layer2_blob.read()))
-    layer3 = Image.open(io.BytesIO(await layer3_blob.read()))
-    layer4 = Image.open(io.BytesIO(await layer4_blob.read()))
-
-    layer1 = calcDropshadow(layer2, radius, intensity, color, resolution)
-    full_image = fullComposite(layer0, layer1, layer2, layer3, layer4)
-    images_to_encode = [full_image, layer0, layer1, layer2, layer3, layer4]
-    with ThreadPoolExecutor() as executor:
-        encoded_images = list(executor.map(encodeImage, images_to_encode))
-    return JSONResponse(content=encoded_images)
-
-@app.post("/inner-shadow")
-async def innerShadow(
-        radius: int = Form(...),
-        intensity: int = Form(...),
-        resolution: int = Form(...),
-        color: str = Form(...),
-        layer0_blob: UploadFile = File(...),
-        layer1_blob: UploadFile = File(...),
-        layer2_blob: UploadFile = File(...),
-        layer4_blob: UploadFile = File(...),
-):
-    layer0 = Image.open(io.BytesIO(await layer0_blob.read()))
-    layer1 = Image.open(io.BytesIO(await layer1_blob.read()))
-    layer2 = Image.open(io.BytesIO(await layer2_blob.read()))
-    layer4 = Image.open(io.BytesIO(await layer4_blob.read()))
-
-    layer3 = calcInnerShadow(layer2, radius, intensity, color, resolution)
-    full_image = fullComposite(layer0, layer1, layer2, layer3, layer4)
-    images_to_encode = [full_image, layer0, layer1, layer2, layer3, layer4]
-    with ThreadPoolExecutor() as executor:
-        encoded_images = list(executor.map(encodeImage, images_to_encode))
-    return JSONResponse(content=encoded_images)
-
-@app.post("/outline")
-async def outline(
-        width: int = Form(...),
-        resolution: int = Form(...),
-        color: str = Form(...),
-        layer0_blob: UploadFile = File(...),
-        layer1_blob: UploadFile = File(...),
-        layer2_blob: UploadFile = File(...),
-        layer3_blob: UploadFile = File(...),
-):
-    layer0 = Image.open(io.BytesIO(await layer0_blob.read()))
-    layer1 = Image.open(io.BytesIO(await layer1_blob.read()))
-    layer2 = Image.open(io.BytesIO(await layer2_blob.read()))
-    layer3 = Image.open(io.BytesIO(await layer3_blob.read()))
-
-    layer4 = calcOutline(layer2, width, color, resolution)
-    full_image = fullComposite(layer0, layer1, layer2, layer3, layer4)
-    images_to_encode = [full_image, layer0, layer1, layer2, layer3, layer4]
-    with ThreadPoolExecutor() as executor:
-        encoded_images = list(executor.map(encodeImage, images_to_encode))
-    return JSONResponse(content=encoded_images)
 
 @app.post("/retrieve-fonts")
 async def retrieveFonts():
