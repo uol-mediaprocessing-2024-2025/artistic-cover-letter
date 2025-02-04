@@ -521,7 +521,8 @@ function editPhoto(index){
           <div class="d-flex align-center justify-center" v-else></div>
           <!-- Loading overlay with centered spinner -->
           <div class="loading-overlay">
-            <v-progress-circular v-if="isLoading" indeterminate color="primary" size="40"></v-progress-circular>
+            <v-progress-linear v-if="isLoading && !fullImage" indeterminate color="primary" size="100"></v-progress-linear>
+            <v-progress-circular v-if="isLoading && fullImage" indeterminate color="primary" size="40"></v-progress-circular>
           </div>
           <div v-if="isLoading" class="loading-overlay" :style="{ backgroundColor: backgroundcolor.valueOf(), opacity: 0.2}">
           </div>
@@ -648,6 +649,10 @@ function editPhoto(index){
 
 .v-expansion-panel{
   border-radius: 15px;
+}
+
+.v-progress-linear{
+  margin-bottom: 4px;
 }
 
 .image-wrapper {
