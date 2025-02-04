@@ -14,7 +14,7 @@ from backend.src.ColorSchemes import generate_constant_value, get_frequent_color
     generate_color_schemes, rate_color_pairing, rate_photo_pairing, rate_color_scheme, plot_colors
 from backend.src.PhotoAnalysis import getSubjects
 from backend.src.image_processing import calcBackgroundBleed, calcDropshadow, calcInnerShadow, circular_kernel, \
-    resizeImage
+    resizeImageLongest
 
 from image_processing import process_image_blur
 from PIL import Image, ImageDraw, ImageFont, ImageChops, ImageCms
@@ -41,7 +41,7 @@ def main():
     images = load_images_from_folder("C:/Users/Simon/Downloads/examplePhotos sorted/")
 
     image = images[0]
-    image = resizeImage(image, 128)
+    image = resizeImageLongest(image, 128)
 
     print("Extracting image colors... ")
     for index in range(0, 10):

@@ -12,9 +12,10 @@ from fastapi.responses import StreamingResponse, JSONResponse
 
 from backend.src.ColorSchemes import cluster_photos
 from backend.src.PhotoAnalysis import getSubjects
+from backend.src.image_processing import resizeImageShortest
 from backend.src.testing import get_image_colors
 from image_processing import process_image_blur, circular_kernel, calcDropshadow, calcBackgroundBleed, calcInnerShadow, \
-    calcOutline, resizeImage
+    calcOutline, resizeImageLongest
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from letter_rendering import generate_letter_layer, get_fonts
 import io
@@ -39,6 +40,22 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
+@app.post("/scale-images")
+async def scale_images(photos: list[UploadFile] = File(...)):
+    images_hires = []
+    print("Loading photos...")
+    for photo in photos:
+        data = await photo.read()
+        image = Image.open(io.BytesIO(data))
+        images_hires.append(image)
+    print("Scaling photos...")
+    with ThreadPoolExecutor() as executor:
+        images = list(executor.map(resizeImageShortest, images_hires))
+    with ThreadPoolExecutor() as executor:
+        encoded_images = list(executor.map(encodeImage, images))
+    return JSONResponse(content=encoded_images)
+
+
 @app.post("/analyze-photos")
 async def analyze_photos(photos: list[UploadFile] = File(...)):
     images_hires = []
@@ -49,7 +66,7 @@ async def analyze_photos(photos: list[UploadFile] = File(...)):
         images_hires.append(image)
     print("Scaling photos...")
     with ThreadPoolExecutor() as executor:
-        images = list(executor.map(resizeImage, images_hires))
+        images = list(executor.map(resizeImageLongest, images_hires))
     print("Analyzing colors...")
     with ThreadPoolExecutor() as executor:
         photo_colors = list(executor.map(get_image_colors, images))
@@ -165,7 +182,7 @@ async def generateSuggestions(
     for photo in photos:
         data = await photo.read()
         image = Image.open(io.BytesIO(data))
-        image_scaled = resizeImage(image, 512)
+        image_scaled = resizeImageLongest(image, 512)
         images.append(image_scaled)
     results = getSubjects(images)
     return JSONResponse(content=results)

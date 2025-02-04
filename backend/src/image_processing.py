@@ -104,8 +104,8 @@ def calcOutline(layer2, width, color, resolution):
     result = Image.merge("RGBA", (r2, g2, b2, clipped_alpha_image))
     return result
 
-# Resize image while maintaining aspect ratio
-def resizeImage(image, dimension=128):
+# Resize image to dimension parameter pixles on the longest dimension
+def resizeImageLongest(image, dimension=128):
     width, height = image.size
     if width > height:
         new_width = dimension
@@ -114,6 +114,18 @@ def resizeImage(image, dimension=128):
         new_height = dimension
         new_width = int((width/height)*dimension)
     return image.resize((new_width, new_height))
+
+# Resize image to dimension parameter pixles on the shortest dimension
+def resizeImageShortest(image, dimension=256):
+    width, height = image.size
+    if width < height:
+        new_width = dimension
+        new_height = int((height / width) * dimension)
+    else:
+        new_height = dimension
+        new_width = int((width / height) * dimension)
+    return image.resize((new_width, new_height))
+
 
 
 async def process_image_blur(file):

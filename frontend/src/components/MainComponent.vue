@@ -5,6 +5,7 @@ import {store} from '../store';
 import {themeState} from "@/views/theme.js"; // Import shared store to manage global state
 import EditorComponent from "@/components/EditorComponent.vue";
 import {green, red} from "vuetify/util/colors";
+import {Photo} from "@/photo.js";
 
 // Reactive references
 const isLoading = ref(false);  // Boolean to show a loading spinner while the image is being processed
@@ -85,7 +86,7 @@ const analyzePhotos = async () => {
     try {
       const formData = new FormData();
       for (const [index, URL] of uploadedPhotos.value.entries()) {
-        const response = await fetch(URL);
+        const response = await fetch(URL._proxyURL);
         const blob = await response.blob();
         formData.append('photos', blob, `image.jpg`)
       }
@@ -156,7 +157,12 @@ const submitText = async () => {
     // I got it to work, yay
     for (const [index, URL] of uploadedPhotos.value.entries()) {
       if (selectedPhotos.value[index]){
-        const response = await fetch(URL);
+        let response;
+        if (resolution.valueOf().value <= 300) {
+          response = await fetch(URL._proxyURL);
+        } else {
+          response = await fetch(URL._originalURL);
+        }
         const blob = await response.blob();
         formData.append('photos', blob, `image.jpg`)
       }
@@ -236,7 +242,7 @@ const updateTextSuggestions = async () => {
     const formData = new FormData();
     for (const [index, URL] of uploadedPhotos.value.entries()) {
       if (selectedPhotos.value[index]){
-        const response = await fetch(URL);
+        const response = await fetch(URL._originalURL);
         const blob = await response.blob();
         formData.append('photos', blob, `image.jpg`)
       }
@@ -266,15 +272,37 @@ const saveToGallery = async () => {
 }
 
 const handleFileUpload = async() => {
-  newlyUploadedFiles.value.forEach(file => {
-    uploadedPhotos.value.push(URL.createObjectURL(new Blob([file], { type: 'image/jpeg' })));
-    selectedPhotos.value.push(true);
-  });
   try {
-    await analyzePhotos()
+    isLoading.value = true;
+    alertMessage.value = "Uploading photos...";
+    const formData = new FormData();
+    for (const file of newlyUploadedFiles.value) {
+      formData.append('photos', file, `image.jpg`)
+    }
+    const response = await axios.post(`${store.apiUrl}/scale-images`, formData, {});
+    const imageArray = response.data;
+    const blobArray = [];
+    imageArray.forEach((base64Image, index) => {
+      const binary = atob(base64Image);
+      const array = [];
+      for (let i = 0; i < binary.length; i++) {
+        array.push(binary.charCodeAt(i));
+      }
+      blobArray[index] = new Blob([new Uint8Array(array)], {type: 'image/png'});
+    });
+    blobArray.forEach((lowResBlob, index) => {
+      const hiResBlob = new Blob([newlyUploadedFiles.value[index]], {type: 'image/jpeg'});
+      uploadedPhotos.value.push(new Photo(hiResBlob, lowResBlob));
+    })
+    selectedPhotos.value.push(true);
+  } catch (error) {
+    errorMessage.value = "Internal server error.";
   } finally {
+    isLoading.value = false;
     newlyUploadedFiles.value = null;
   }
+  alertMessage.value = "Analyzing colors... Please wait.";
+  await analyzePhotos()
 }
 
 const deleteAllPhotos = async () => {
@@ -447,7 +475,7 @@ function editPhoto(index){
               <v-row>
                 <v-col  v-for="(photo, index) in uploadedPhotos" :key="index" md="2">
                   <v-card :class="{'deselected': !selectedPhotos[index]}" :disabled="isLoading">
-                    <v-img :src="photo">
+                    <v-img :src="photo._proxyURL">
                       <v-btn icon density="compact" class="reset-btn ma-2" @click="deletePhoto(index)" color="error">
                         <v-icon small>mdi-close</v-icon>
                       </v-btn>
