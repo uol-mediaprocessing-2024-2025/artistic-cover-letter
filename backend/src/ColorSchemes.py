@@ -1,3 +1,5 @@
+import time
+from functools import lru_cache
 from time import sleep
 
 import colorspacious as cs
@@ -7,17 +9,15 @@ from matplotlib import pyplot as plt
 from sklearn.cluster import KMeans
 
 def cluster_photos(photo_colors):
-    distance_matrix = np.zeros((len(photo_colors), len(photo_colors)))
+    n = len(photo_colors)
+    distance_matrix = np.zeros((n, n))
     print("Calculating distance matrix... ")
-    for i in range(len(photo_colors)):
-        for j in range(i, len(photo_colors)):
-            if i == j:
-                distance_matrix[i, j] = 0
-            else:
+    for i in range(n):
+        for j in range(i, n):
+            if i != j:
                 distance = rate_photo_pairing(photo_colors[i], photo_colors[j])
                 distance_matrix[i, j] = distance
                 distance_matrix[j, i] = distance  # Matrix symmetry
-
     print("Performing clustering... ")
     cluster_count = int(len(photo_colors)/10)
     if cluster_count < 1: cluster_count = 1
