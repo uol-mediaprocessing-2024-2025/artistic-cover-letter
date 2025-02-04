@@ -41,13 +41,15 @@ app.add_middleware(
 
 @app.post("/analyze-photos")
 async def analyze_photos(photos: list[UploadFile] = File(...)):
-    images = []
+    images_hires = []
     print("Loading photos...")
     for photo in photos:
         data = await photo.read()
         image = Image.open(io.BytesIO(data))
-        image = resizeImage(image, 128)
-        images.append(image)
+        images_hires.append(image)
+    print("Scaling photos...")
+    with ThreadPoolExecutor() as executor:
+        images = list(executor.map(resizeImage, images_hires))
     print("Analyzing colors...")
     with ThreadPoolExecutor() as executor:
         photo_colors = list(executor.map(get_image_colors, images))

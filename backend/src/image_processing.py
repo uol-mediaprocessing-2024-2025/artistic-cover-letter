@@ -105,7 +105,7 @@ def calcOutline(layer2, width, color, resolution):
     return result
 
 # Resize image while maintaining aspect ratio
-def resizeImage(image, dimension):
+def resizeImage(image, dimension=128):
     width, height = image.size
     if width > height:
         new_width = dimension
