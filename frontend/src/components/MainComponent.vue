@@ -86,7 +86,7 @@ const analyzePhotos = async () => {
     try {
       const formData = new FormData();
       for (const [index, URL] of uploadedPhotos.value.entries()) {
-        const response = await fetch(URL._proxyURL);
+        const response = await fetch(URL._originalURL);
         const blob = await response.blob();
         formData.append('photos', blob, `image.jpg`)
       }
