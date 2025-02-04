@@ -14,7 +14,7 @@ const errorMessage = ref(null); // String that holds an error message
 const alertMessage = ref(null); // String that holds an alert message
 
 
-const resolution = ref("250"); // Image resolution setting
+const resolution = ref("300"); // Image resolution setting
 
 // Dropshadow
 const dropshadowintensity = ref(50);
@@ -136,9 +136,8 @@ const submitText = async () => {
   }
   isLoading.value = true;
   errorMessage.value = null;
-  if (resolution.valueOf().value > 1600) resolution.value = 1600;
+  if (resolution.valueOf().value > 2400) resolution.value = 2400;
   if (resolution.valueOf().value < 100) resolution.value = 100;
-  if (resolution.valueOf().value > 750) alertMessage.value = "This might take a while, please wait.";
   try {
     const formData = new FormData();
     formData.append('text', text.valueOf().value);
@@ -200,7 +199,7 @@ const applyEffects = async () => {
     alertMessage.value = "Please upload some photos to continue.";
     return;
   }
-  if (resolution.valueOf().value > 250) {
+  if (resolution.valueOf().value > 300) {
     isLoading.value = true;
   }
   errorMessage.value = null;
@@ -260,6 +259,10 @@ const updateTextSuggestions = async () => {
 }
 
 const downloadImage = async () => {
+  if (resolution.valueOf().value <= 300) {
+    resolution.valueOf().value = 600;
+    await submitText();
+  }
   const link = document.createElement('a');
   link.href = fullImage.value;
   link.download = 'fullImage.png';
@@ -316,17 +319,15 @@ const deleteAllPhotos = async () => {
 }
 
 const onWheel = async (event) => {
-  if (!fullImage.value){
-    event.preventDefault();
-    event.stopPropagation();
-    const index = availableFonts.value.indexOf(selectedFont.value)
-    if (event.deltaY > 0) {
-      selectedFont.value = availableFonts.value[(index+1)%availableFonts.value.length];
-    } else {
-      selectedFont.value = availableFonts.value[(index+availableFonts.value.length-1)%availableFonts.value.length];
-    }
-    await submitText();
+  event.preventDefault();
+  event.stopPropagation();
+  const index = availableFonts.value.indexOf(selectedFont.value)
+  if (event.deltaY > 0) {
+    selectedFont.value = availableFonts.value[(index+1)%availableFonts.value.length];
+  } else {
+    selectedFont.value = availableFonts.value[(index+availableFonts.value.length-1)%availableFonts.value.length];
   }
+  await submitText();
 }
 
 const updatebackground = async () => {
@@ -407,9 +408,9 @@ function editPhoto(index){
     data () {
       return {
         tickLabels: {
-          250: 'Low Quality',
-          500: 'Standard Quality',
-          750: 'High Quality',
+          300: 'Low Quality',
+          600: 'Standard Quality',
+          900: 'High Quality',
         },
       }
     },
@@ -522,7 +523,7 @@ function editPhoto(index){
           <div class="loading-overlay">
             <v-progress-circular v-if="isLoading" indeterminate color="primary" size="40"></v-progress-circular>
           </div>
-          <div v-if="isLoading" class="loading-overlay" :style="{ backgroundColor: backgroundcolor.valueOf(), opacity: 0.4}">
+          <div v-if="isLoading" class="loading-overlay" :style="{ backgroundColor: backgroundcolor.valueOf(), opacity: 0.2}">
           </div>
         </div>
       <v-alert v-if="alertMessage" type="info"> {{ alertMessage }}</v-alert>
@@ -604,7 +605,7 @@ function editPhoto(index){
         <v-icon class="mr-2">mdi-export</v-icon>
         <h3>&nbsp;Export</h3>
       </v-card-title>
-      <v-slider :min="250" :max="750" v-model="resolution" :ticks="tickLabels" show-ticks="always" step="250" tick-size="4" @end="submitText" :disabled="isLoading">
+      <v-slider :min="300" :max="900" v-model="resolution" :ticks="tickLabels" show-ticks="always" step="300" tick-size="4" @end="submitText" :disabled="isLoading">
         <template v-slot:append>
           <v-text-field v-model="resolution" density="compact" style="width: 100px" type="number" hide-details single-line @change="submitText" :disabled="isLoading"
           ></v-text-field>
