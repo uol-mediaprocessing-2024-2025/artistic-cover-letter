@@ -120,7 +120,7 @@ const updateColorScheme = async () => {
   suggestedbackgroundcolors.value = colorSchemes.value[selectedScheme.value];
 }
 
-// Submits text to be processed by the backend
+// Generates text using input text and effect parameters
 const submitText = async () => {
     if (!text.valueOf().value){
     alertMessage.value = "Please type in your text.";
@@ -194,6 +194,7 @@ const updateImages = (imageArray) => {
   fullImage.value = blobArray[1];
 }
 
+// Applies effects using text layer and fx parameters only
 const applyEffects = async () => {
   if (uploadedPhotos.value.length === 0){
     alertMessage.value = "Please upload some photos to continue.";
@@ -229,6 +230,7 @@ const applyEffects = async () => {
   }
 }
 
+// Generates text suggestions using uploaded photos
 const updateTextSuggestions = async () => {
   if (selectedPhotos.value.every(value => value === false)){
     alertMessage.value = "Please select some photos to continue.";
@@ -258,6 +260,7 @@ const updateTextSuggestions = async () => {
   }
 }
 
+// Downloads image to the users browser
 const downloadImage = async () => {
   if (resolution.valueOf().value <= 300) {
     resolution.valueOf().value = 600;
@@ -269,11 +272,14 @@ const downloadImage = async () => {
   link.click();
 }
 
+// Saves currently loaded image to gallery
 const saveToGallery = async () => {
   store.photoUrls.push(fullImage.value)
   alertMessage.value ="Image saved to gallery."
 }
 
+// Handles upload of photo files
+// Generates photo objects with low quality thumbnails
 const handleFileUpload = async() => {
   try {
     isLoading.value = true;
@@ -308,6 +314,7 @@ const handleFileUpload = async() => {
   await analyzePhotos()
 }
 
+// Deletes all uploaded photos
 const deleteAllPhotos = async () => {
   uploadedPhotos.value = []
   photoPanel.value = null;
@@ -318,6 +325,7 @@ const deleteAllPhotos = async () => {
   await submitText()
 }
 
+// Responds to wheel input on the font selection box
 const onWheel = async (event) => {
   event.preventDefault();
   event.stopPropagation();
@@ -330,6 +338,7 @@ const onWheel = async (event) => {
   await submitText();
 }
 
+// Switches light/dark theme based on the brightness of the background color
 const updatebackground = async () => {
   const hex = backgroundcolor.valueOf().value.replace(/^#/, '');
   const r = parseInt(hex.slice(0, 2), 16)
@@ -348,6 +357,7 @@ const updatebackground = async () => {
   }
 }
 
+// Responds to arrow key input on the font selection box
 const keyDown = async (event) => {
   const index = availableFonts.value.indexOf(selectedFont.value)
   if (event.key === 'ArrowRight') {
@@ -358,6 +368,7 @@ const keyDown = async (event) => {
   }
 }
 
+// Automatically updates color for dropshadow and inner shadow
 async function updateShadows() {
   let update = false
   if (themeState.isDark) {
@@ -384,6 +395,7 @@ async function updateShadows() {
   }
 }
 
+// Deletes specified photo from uploaded photos
 function deletePhoto(index){
   console.log("Delete Photo called");
   uploadedPhotos.value.splice(index, 1);
@@ -392,15 +404,18 @@ function deletePhoto(index){
   console.log(selectedPhotos);
 }
 
+// Selects all photos if boolean is true, deselects if false
 function selectAllPhotos(boolean){
   selectedPhotos.value.fill(boolean);
   submitText();
 }
 
+/* Unused function to edit photos
 function editPhoto(index){
   editorIndex.valueOf().value = index;
   editorDialog.valueOf().value = true;
 }
+*/
 </script>
 
 <script>
@@ -480,9 +495,10 @@ function editPhoto(index){
                       <v-btn icon density="compact" class="reset-btn ma-2" @click="deletePhoto(index)" color="error">
                         <v-icon small>mdi-close</v-icon>
                       </v-btn>
+                      <!-- Unused code to open photo editor
                       <v-btn icon density="compact" class="edit-btn ma-2" @click="editPhoto(index)" color="accent">
                         <v-icon small>mdi-image-edit</v-icon>
-                      </v-btn>
+                      </v-btn> -->
                       <v-checkbox v-model="selectedPhotos[index]" @change="submitText" class="toggle ma-2" hide-details :disabled="isLoading"></v-checkbox>
                     </v-img>
                   </v-card>
