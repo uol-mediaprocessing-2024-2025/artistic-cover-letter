@@ -1,13 +1,64 @@
-import time
-from functools import lru_cache
-from time import sleep
-
 import colorspacious as cs
 import matplotlib.colors as matcolors
 import numpy as np
 from matplotlib import pyplot as plt
 from sklearn.cluster import KMeans
 
+# Uses an Algorithm by Kamal Joshi to find prominent colors.
+# https://hackernoon.com/extract-prominent-colors-from-an-image-using-machine-learning-vy2w33rx
+def get_image_colors(image):
+    image = np.array(image)
+
+    # Reshape image to a 2D array of pixels
+    srgb_pixels = image.reshape(-1, 3)
+    lab_pixels = cs.cspace_convert(srgb_pixels, "sRGB1", "CIELab")
+
+    # Run k-means clustering
+    kmeans = KMeans(n_clusters=24, init='k-means++', n_init=14, max_iter=450, random_state=42)
+    kmeans.fit(lab_pixels)
+
+    # Get the cluster centers (dominant colors)
+    colors = kmeans.cluster_centers_
+    colors = cs.cspace_convert(colors, "CIELab", "sRGB1")
+
+    # Convert color to integer values
+    colors_rgb = [list(map(int, color)) for color in colors]
+
+    # Sort by hue
+    hue_sorted = sort_colors_by_hsv_component(colors_rgb, 0)
+
+    # Split into six groups
+    group1 = hue_sorted[0:4]
+    group2 = hue_sorted[4:8]
+    group3 = hue_sorted[8:12]
+    group4 = hue_sorted[12:16]
+    group5 = hue_sorted[16:20]
+    group6 = hue_sorted[20:24]
+
+    groups = [group1, group2, group3, group4, group5, group6]
+    groupresults = []
+
+    # Perform other group operations
+    for group in groups:
+        group = sort_colors_by_hsv_component(group, 1)
+        group = group[2:4]
+        group = sort_colors_by_hsv_component(group, 2)
+        groupresults.append(group[1])
+    return groupresults
+
+# Sorts an array of colors by one of the three HSV components specified by the dimension parameter
+def sort_colors_by_hsv_component(rgb_colors, dimension):
+    # normalize rgb and convert to hsv
+    normalized = np.array(rgb_colors) / 255.0
+    hsv_colors = [matcolors.rgb_to_hsv(color) for color in normalized]
+
+    # Sort the colors by the hue component (first value in HSB)
+    sorted_indices = np.argsort([color[dimension] for color in hsv_colors])
+
+    # Return the colors sorted by hue
+    return [rgb_colors[i] for i in sorted_indices]
+
+# Clusters photos to generate groups of photos with a color scheme each
 def cluster_photos(photo_colors):
     n = len(photo_colors)
     distance_matrix = np.zeros((n, n))
@@ -15,7 +66,7 @@ def cluster_photos(photo_colors):
     for i in range(n):
         for j in range(i, n):
             if i != j:
-                distance = rate_photo_pairing(photo_colors[i], photo_colors[j])
+                distance = rate_scheme_pairing(photo_colors[i], photo_colors[j])
                 distance_matrix[i, j] = distance
                 distance_matrix[j, i] = distance  # Matrix symmetry
     print("Performing clustering... ")
@@ -47,6 +98,7 @@ def cluster_photos(photo_colors):
 
     # Takes cluster centers and uses the distance matrix to find the center cluster element.
     # Written by Bing AI
+
 def find_closest_points(cluster_centers, distance_matrix):
     closest_points = []
     for center in cluster_centers:
@@ -100,7 +152,7 @@ def rate_color_scheme(color_scheme, photo_colors, photo_count):
     scores = []
     indices = []
     for index, photo_scheme in enumerate(photo_colors):
-        scores.append(rate_photo_pairing(color_scheme, photo_scheme))
+        scores.append(rate_scheme_pairing(color_scheme, photo_scheme))
         indices.append(index)
     combined_sorted = sorted(zip(scores, indices), reverse=True)
     scores_sorted, indices_sorted = map(list, zip(*combined_sorted))
@@ -113,78 +165,23 @@ def rate_color_scheme(color_scheme, photo_colors, photo_count):
 
 # This method rates the pairing between two color schemes using the rate_color_pairing
 # method to assess each color pairing.
-def rate_photo_pairing(color_scheme, photo_scheme):
+def rate_scheme_pairing(scheme_1, scheme_2):
     total_score = 0
-    for color in color_scheme:
+    for color_1 in scheme_1:
         best = 30000
-        for photo_color in photo_scheme:
-            score = rate_color_pairing(color, photo_color)
+        for color_2 in scheme_2:
+            score = rate_color_pairing(color_1, color_2)
             if score < best:
                 best = score
         total_score = total_score + best
     return total_score
 
 # This method rates the distance between two colors based on Euclidean distance in CIELab.
-def rate_color_pairing(color_scheme, photo_color):
-    photo_color_lab = cs.cspace_convert(photo_color, "sRGB1", "CIELab")
-    color_scheme_lab = cs.cspace_convert(color_scheme, "sRGB1", "CIELab")
+def rate_color_pairing(color_1, color_2):
+    photo_color_lab = cs.cspace_convert(color_2, "sRGB1", "CIELab")
+    color_scheme_lab = cs.cspace_convert(color_1, "sRGB1", "CIELab")
     distance = np.linalg.norm(color_scheme_lab - photo_color_lab)
     return distance
-
-
-
-
-# Takes in an RGB color and varies all HSV dimensions except the one that
-# is given in constant_dimension
-def generate_hsv_variations(color, constant_dimension):
-    color = np.array(color)
-    normalized = color/255.0
-    hsv = matcolors.rgb_to_hsv(normalized)
-    constant = hsv[constant_dimension]
-    hsv = np.delete(hsv, constant_dimension)
-    variable1 = hsv[0]
-    variable2 = hsv[1]
-    depth = 8
-    colors = []
-    for variable1_offset in range(1,depth):
-        variable1_offset = (variable1_offset / depth)/5
-        # Ensure that variable 1 is within 0 and 1
-        if ((variable1 + (-2) * variable1_offset) > 0) & (variable1 + 2 * variable1_offset < 1):
-            for variable2_offset in range(1,depth):
-                variable2_offset = (variable2_offset / depth)/5
-                # Ensure that variable 2 is within 0 and 1
-                if ((variable2 + (-2) * variable2_offset) > 0) & (variable2 + 2 * variable2_offset < 1):
-                    color_scheme = []
-                    for pallet_offset in range(5):
-                        hsv_variable1 = variable1 + ((pallet_offset - 2) * variable1_offset)
-                        hsv_variable2 = variable2 + ((pallet_offset - 2) * variable2_offset)
-                        match constant_dimension:
-                            case 0: hsv = np.array([constant, hsv_variable1, hsv_variable2])
-                            case 1: hsv = np.array([hsv_variable1, constant, hsv_variable2])
-                            case 2: hsv = np.array([hsv_variable1, hsv_variable2, constant])
-                        rgb = matcolors.hsv_to_rgb(hsv)
-                        rgb = (rgb*255).astype(np.uint8)
-                        color_scheme.append(rgb)
-                    colors.append(color_scheme)
-    return colors
-
-
-def generate_constant_value(value):
-    colors = []
-    for hue in range(0, 7):
-        for saturation in range(0, 7):
-            hue = hue*(365/8)
-            rad = np.deg2rad(hue)
-            a = 100 * np.cos(rad)
-            b = 100 * np.sin(rad)
-            value = 1
-            a = 0
-            b = 0
-            cielab = np.array([value, a, b])
-            rgb = cs.cspace_convert(cielab, "CIELab", "sRGB1")
-            print(rgb)
-            colors.append(rgb)
-    return colors
 
 # Plot the colors as bar chart for testing. Bing AI Method
 def plot_colors(colors):

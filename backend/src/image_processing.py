@@ -1,7 +1,6 @@
 from PIL import Image, ImageFilter, ImageOps
 import numpy as np
 import cv2
-import io
 
 # Creates a circular kernel for dilation
 def circular_kernel(radius):
@@ -21,15 +20,15 @@ def circular_kernel(radius):
     return kernel
 
 # Calculates the dropshadow layer
-def calcDropshadow(layer_2, radius, intensity, color, resolution):
+def calcDropshadow(letter_layer, radius, intensity, color, resolution):
     if intensity < 1:
-        return Image.new('RGBA', layer_2.size, (0, 0, 0, 0))
+        return Image.new('RGBA', letter_layer.size, (0, 0, 0, 0))
     print("Applying dropshadow with radius " + str(radius) + " and intensity " + str(intensity))
     correctedradius = radius * resolution / 300
     correctedradius = round(correctedradius)
 
     # Handle dropshadow with Alpha channel and set all other channels to black
-    r, g, b, a = layer_2.split()
+    r, g, b, a = letter_layer.split()
     dilated = cv2.dilate(np.array(a), circular_kernel(int(correctedradius / 4)), iterations=1)
     blurred = cv2.GaussianBlur(dilated, (correctedradius * 2 + 1, correctedradius * 2 + 1), 0)
     dimmed = np.clip(blurred * (intensity/100), 0, 255).astype(np.uint8)
@@ -43,10 +42,11 @@ def calcDropshadow(layer_2, radius, intensity, color, resolution):
     return dropshadow
 
 # Calculates the background bleed layer
-def calcBackgroundBleed(layer2, radius, intensity, resolution):
+def calcBackgroundBleed(letter_layer, radius, intensity, resolution):
     if intensity < 1:
-        return Image.new('RGBA', layer2.size, (0, 0, 0, 0))
+        return Image.new('RGBA', letter_layer.size, (0, 0, 0, 0))
     print("Applying background bleed with radius " + str(radius) + " and intensity " + str(intensity))
+    # Downscaling drastically improves performance at high resolutions with low visual impact
     downscalefactor = 2
     if resolution >= 600:
         downscalefactor = 4
@@ -54,7 +54,8 @@ def calcBackgroundBleed(layer2, radius, intensity, resolution):
             downscalefactor = 8
             if resolution >= 2400:
                 downscalefactor = 16
-    downscaled = layer2.resize((int(layer2.width/downscalefactor), int(layer2.height/downscalefactor)), Image.Resampling.NEAREST)
+    # interpolated downscaling causes problems with the dilation effect, so always use NEAREST for this
+    downscaled = letter_layer.resize((int(letter_layer.width / downscalefactor), int(letter_layer.height / downscalefactor)), Image.Resampling.NEAREST)
     correctedradius = int((radius*(resolution/200))/downscalefactor)
     dilated = Image.fromarray(cv2.dilate(np.array(downscaled), circular_kernel(correctedradius)))
     r1, g1, b1, a1 = dilated.split()
@@ -65,15 +66,16 @@ def calcBackgroundBleed(layer2, radius, intensity, resolution):
     multiplied_alpha = np.array(a3) * (intensity/100 + radius/100)
     clipped_alpha = np.clip(multiplied_alpha, 0, 255).astype(np.uint8)
     final = Image.merge("RGBA", (r3, g3, b3, Image.fromarray(clipped_alpha, "L")))
-    final_upscaled = final.resize(layer2.size, Image.Resampling.BILINEAR)
+    final_upscaled = final.resize(letter_layer.size, Image.Resampling.BILINEAR)
     return final_upscaled
 
-def calcInnerShadow(layer2, radius, intensity, color, resolution):
+# Calculates the inner shadow layer
+def calcInnerShadow(letter_layer, radius, intensity, color, resolution):
     if intensity < 1:
-        return Image.new('RGBA', layer2.size, (0, 0, 0, 0))
+        return Image.new('RGBA', letter_layer.size, (0, 0, 0, 0))
     print("Applying inner shadow with radius " + str(radius) + " and intensity " + str(intensity))
     correctedradius = int(radius*(resolution/600))
-    r, g, b, a = layer2.split()
+    r, g, b, a = letter_layer.split()
     r2 = Image.fromarray(np.full((r.height,r.width), int(color[1:3], 16), dtype=np.uint8))
     g2 = Image.fromarray(np.full((g.height, g.width), int(color[3:5], 16), dtype=np.uint8))
     b2 = Image.fromarray(np.full((b.height, b.width), int(color[5:7], 16), dtype=np.uint8))
@@ -87,12 +89,13 @@ def calcInnerShadow(layer2, radius, intensity, color, resolution):
     result = Image.merge("RGBA", (r2, g2, b2, clipped_alpha_image))
     return result
 
-def calcOutline(layer2, width, color, resolution):
+# Calculates outline layer
+def calcOutline(letter_layer, width, color, resolution):
     if width < 1:
-        return Image.new('RGBA', layer2.size, (0, 0, 0, 0))
+        return Image.new('RGBA', letter_layer.size, (0, 0, 0, 0))
     print("Applying outline with width " + str(width))
     correctedwidth = int(width*(resolution/2000))
-    r, g, b, a = layer2.split()
+    r, g, b, a = letter_layer.split()
     r2 = Image.fromarray(np.full((r.height,r.width), int(color[1:3], 16), dtype=np.uint8))
     g2 = Image.fromarray(np.full((g.height, g.width), int(color[3:5], 16), dtype=np.uint8))
     b2 = Image.fromarray(np.full((b.height, b.width), int(color[5:7], 16), dtype=np.uint8))
@@ -104,7 +107,7 @@ def calcOutline(layer2, width, color, resolution):
     result = Image.merge("RGBA", (r2, g2, b2, clipped_alpha_image))
     return result
 
-# Resize image to dimension parameter pixles on the longest dimension
+# Resize image to dimension parameter pixels on the longest dimension
 def resizeImageLongest(image, dimension=128):
     width, height = image.size
     if width > height:
@@ -115,7 +118,7 @@ def resizeImageLongest(image, dimension=128):
         new_width = int((width/height)*dimension)
     return image.resize((new_width, new_height))
 
-# Resize image to dimension parameter pixles on the shortest dimension
+# Resize image to dimension parameter pixels on the shortest dimension
 def resizeImageShortest(image, dimension=256):
     width, height = image.size
     if width < height:
@@ -126,21 +129,3 @@ def resizeImageShortest(image, dimension=256):
         new_width = int((width / height) * dimension)
     return image.resize((new_width, new_height))
 
-
-
-async def process_image_blur(file):
-    """
-    Applies a blur effect to the uploaded image.
-    :param file: The uploaded image file.
-    :return: The processed (blurred) PIL Image object.
-    """
-    # Read the image file data
-    image_data = await file.read()
-
-    # Open the image using PIL
-    image = Image.open(io.BytesIO(image_data))
-
-    # Apply the blur effect
-    blurred_image = image.filter(ImageFilter.BoxBlur(50))
-
-    return blurred_image

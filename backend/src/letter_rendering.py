@@ -1,24 +1,8 @@
 from concurrent.futures.thread import ThreadPoolExecutor
 from functools import lru_cache
-import numpy
-from PIL.Image import alpha_composite
-from PIL.ImageFile import ImageFile
-from fastapi import FastAPI, UploadFile, File, Form, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse, JSONResponse
-from image_processing import process_image_blur
-from PIL import Image,ImageDraw,ImageFont,ImageChops, ImageFile
-from image_processing import circular_kernel
+from PIL import Image,ImageDraw,ImageFont,ImageChops
 import matplotlib.font_manager as fontmanager
-import matplotlib.pyplot as plt
-import os
-import time
-import matplotlib.image as mpimg
-import io
-import uvicorn
-import cv2
-import numpy as np
-import base64
+
 
 # Generates the whole layer of letters
 # Parallelized with the help of AI
@@ -87,6 +71,7 @@ def generate_letter_mask(text, font_name, resolution):
     coordinate_x = [0] + [sum(res[1] for res in results[:i+1]) for i in range(len(results))]
     return blank_image, letters, coordinate_x
 
+# Generates mask for a single letter
 def generate_single_letter(args):
     char, font, resolution, descent, image_height = args
     temp_image = Image.new('RGBA', (1, 1), (0, 0, 0, 0))
@@ -137,6 +122,8 @@ def texture_letter(image, letter):
 
     return result_image
 
+# Retrieves fonts
+# Cached because it's also called whenever text is generated, so this speeds things up
 @lru_cache(maxsize=None)
 def get_fonts():
     font_files = fontmanager.findSystemFonts()
