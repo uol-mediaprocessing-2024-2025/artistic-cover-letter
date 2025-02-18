@@ -4,7 +4,7 @@
         <!-- Sidebar navigation using Vuetify's navigation drawer -->
         <v-navigation-drawer app permanent>
             <!-- Title and subtitle for the app -->
-            <v-list-item title="Artistic Cover Letter" subtitle="preview 3"></v-list-item>
+            <v-list-item title="Artistic Cover Letter" subtitle="v1"></v-list-item>
             <v-divider></v-divider>
 
             <!-- Navigation list for routing -->
