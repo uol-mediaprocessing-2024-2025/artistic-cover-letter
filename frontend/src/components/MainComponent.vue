@@ -86,7 +86,7 @@ const analyzePhotos = async () => {
     try {
       const formData = new FormData();
       for (const [index, URL] of uploadedPhotos.value.entries()) {
-        const response = await fetch(URL._originalURL);
+        const response = await fetch(URL._proxyURL);
         const blob = await response.blob();
         formData.append('photos', blob, `image.jpg`)
       }
@@ -106,6 +106,7 @@ const analyzePhotos = async () => {
     isLoading.value = false;
     alertMessage.value = null;
     selectedScheme.value = 0
+      console.log(uploadedPhotos.value)
     await updateColorScheme()
   }
 }

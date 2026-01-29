@@ -14,6 +14,8 @@ from letter_rendering import generate_letter_layer, get_fonts
 import io
 import uvicorn
 import base64
+import os
+import time
 
 
 app = FastAPI()
@@ -38,7 +40,7 @@ async def scale_images(photos: list[UploadFile] = File(...)):
         images_hires.append(image)
     print("Scaling photos...")
     with ThreadPoolExecutor() as executor:
-        images = list(executor.map(resizeImageShortest, images_hires))
+        images = list(executor.map(resizeImageLongest, images_hires))
     with ThreadPoolExecutor() as executor:
         encoded_images = list(executor.map(encodeImage, images))
     return JSONResponse(content=encoded_images)
@@ -46,17 +48,16 @@ async def scale_images(photos: list[UploadFile] = File(...)):
 # Analyzes photos and generates pairs with color values
 @app.post("/analyze-photos")
 async def analyze_photos(photos: list[UploadFile] = File(...)):
-    images_hires = []
+    starttime = time.time()
+    images = []
     print("Loading photos...")
     for photo in photos:
         data = await photo.read()
         image = Image.open(io.BytesIO(data))
-        images_hires.append(image)
-    print("Scaling photos...")
-    with ThreadPoolExecutor() as executor:
-        images = list(executor.map(resizeImageLongest, images_hires))
+        images.append(image)
     print("Analyzing colors...")
-    with ThreadPoolExecutor() as executor:
+    thread_count = max(int(os.cpu_count()/4),1)
+    with ThreadPoolExecutor(max_workers=thread_count) as executor:
         photo_colors = list(executor.map(get_image_colors, images))
     schemes, groups = cluster_photos(photo_colors)
     content = []
@@ -64,6 +65,8 @@ async def analyze_photos(photos: list[UploadFile] = File(...)):
         content.append(scheme)
     for group in groups:
         content.append(group)
+    endtime = time.time()
+    print("Analysis took " + str(endtime - starttime) + " seconds")
     return JSONResponse(content=content)
 
 # Generates text and effects

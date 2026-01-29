@@ -1,8 +1,14 @@
 import colorspacious as cs
+import joblib
 import matplotlib.colors as matcolors
 import numpy as np
 from matplotlib import pyplot as plt
 from sklearn.cluster import KMeans
+import os
+# Fixes a really bad deadlock when running sklearn in parallel
+os.environ["LOKY_MAX_CPU_COUNT"] = "4"
+os.environ["OMP_NUM_THREADS"] = "4"
+os.environ["OPENBLAS_NUM_THREADS"] = "4"
 
 # Uses an Algorithm by Kamal Joshi to find prominent colors.
 # https://hackernoon.com/extract-prominent-colors-from-an-image-using-machine-learning-vy2w33rx
