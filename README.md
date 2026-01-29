@@ -1,7 +1,10 @@
 # Artistic Cover Letter
 
-<img src="readme_img/demo1_dark.png" width="100%"/>
-
+<picture>
+   <source media="(prefers-color-scheme: dark)" srcset="readme_img/demo1_dark.png">
+   <source media="(prefers-color-scheme: light)" srcset="readme_img/demo1_light.png">
+   <img alt="Demo Screenshot" src="readme_img/demo1_dark.png">
+</picture>
 
 This software lets users easily generate combinations of letters and images.
 
@@ -22,7 +25,6 @@ This software lets users easily generate combinations of letters and images.
 <img src="readme_img/demo5.png" width="40%"/> <img src="readme_img/demo6.png" width="40%"/>
 
 Color extraction using an algorithm by [Kamal Joshi](https://hackernoon.com/extract-prominent-colors-from-an-image-using-machine-learning-vy2w33rx).
-
 
 Including Oklab color space to improve perceptual uniformity, with primitive clustering to find photos with similar color schemes.
 
