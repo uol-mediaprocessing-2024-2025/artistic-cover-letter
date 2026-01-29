@@ -3,22 +3,34 @@
 <picture>
    <source media="(prefers-color-scheme: dark)" srcset="readme_img/demo1_dark.png">
    <source media="(prefers-color-scheme: light)" srcset="readme_img/demo1_light.png">
-   <img alt="Demo Screenshot" src="readme_img/demo1_dark.png">
+   <img alt="Demo Screenshot" src="readme_img/demo1_dark.png"/>
 </picture>
 
 This software lets users easily generate combinations of letters and images.
 
 ## Text & Font options
 
-<img src="readme_img/demo2_dark.png" width="60%"/>
+<picture>
+   <source media="(prefers-color-scheme: dark)" srcset="readme_img/demo2_dark.png">
+   <source media="(prefers-color-scheme: light)" srcset="readme_img/demo2_light.png">
+   <img alt="Demo Screenshot" src="readme_img/demo2_dark.png" width="60%"/>
+</picture>
 
 ## Photos and generated color schemes
 
-<img src="readme_img/demo3_dark.png" width="60%"/>
+<picture>
+   <source media="(prefers-color-scheme: dark)" srcset="readme_img/demo3_dark.png">
+   <source media="(prefers-color-scheme: light)" srcset="readme_img/demo3_light.png">
+   <img alt="Demo Screenshot" src="readme_img/demo3_dark.png" width="60%"/>
+</picture>
 
 ## Effects & Export
 
-<img src="readme_img/demo4_dark.png" width="60%"/>
+<picture>
+   <source media="(prefers-color-scheme: dark)" srcset="readme_img/demo4_dark.png">
+   <source media="(prefers-color-scheme: light)" srcset="readme_img/demo4_light.png">
+   <img alt="Demo Screenshot" src="readme_img/demo4_dark.png" width="60%"/>
+</picture>
 
 # Relevant concepts
 
@@ -30,17 +42,29 @@ Including Oklab color space to improve perceptual uniformity, with primitive clu
 
 Previous attempts included hue matching with histogram analysis, and random color scheme generation using Oklab inspired by [Acerola](https://youtu.be/fv-wlo8yVhk?si=vvBKAdjNrrfGk45I&t=1673).
 
-<img src="readme_img/demo7_dark.png" width="50%"/>
+<picture>
+   <source media="(prefers-color-scheme: dark)" srcset="readme_img/demo7_dark.png">
+   <source media="(prefers-color-scheme: light)" srcset="readme_img/demo7_light.png">
+   <img alt="Demo Screenshot" src="readme_img/demo7_dark.png" width="50%"/>
+</picture>
 
 <img src="readme_img/demo8.png" width="80%"/>
 
 Layer system using a cached base layer to efficiently generate effects, including DPI-based settings to adjust rendering resolution.
 
-<img src="readme_img/demo9_dark.png" width="60%"/>
+<picture>
+   <source media="(prefers-color-scheme: dark)" srcset="readme_img/demo9_dark.png">
+   <source media="(prefers-color-scheme: light)" srcset="readme_img/demo9_light.png">
+   <img alt="Demo Screenshot" src="readme_img/demo9_dark.png" width="60%"/>
+</picture>
 
 Moondream AI model for Text suggestions.
 
-![](readme_img/output_video_dark.avif)
+<picture>
+   <source media="(prefers-color-scheme: dark)" srcset="readme_img/output_video_dark.avif">
+   <source media="(prefers-color-scheme: light)" srcset="readme_img/output_video_light.avif">
+   <img alt="Demo Screenshot" src="readme_img/output_video_dark.avif"/>
+</picture>
 
 Proof of concept animation rendering.
 
