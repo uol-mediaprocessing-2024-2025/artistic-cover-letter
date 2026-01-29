@@ -29,32 +29,18 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
-# Scales images from the frontend
-@app.post("/scale-images")
-async def scale_images(photos: list[UploadFile] = File(...)):
+# Analyzes photos and generates pairs with color values
+@app.post("/analyze-photos")
+async def analyze_photos(photos: list[UploadFile] = File(...)):
+    starttime = time.time()
     images_hires = []
     print("Loading photos...")
     for photo in photos:
         data = await photo.read()
         image = Image.open(io.BytesIO(data))
         images_hires.append(image)
-    print("Scaling photos...")
     with ThreadPoolExecutor() as executor:
         images = list(executor.map(resizeImageLongest, images_hires))
-    with ThreadPoolExecutor() as executor:
-        encoded_images = list(executor.map(encodeImage, images))
-    return JSONResponse(content=encoded_images)
-
-# Analyzes photos and generates pairs with color values
-@app.post("/analyze-photos")
-async def analyze_photos(photos: list[UploadFile] = File(...)):
-    starttime = time.time()
-    images = []
-    print("Loading photos...")
-    for photo in photos:
-        data = await photo.read()
-        image = Image.open(io.BytesIO(data))
-        images.append(image)
     print("Analyzing colors...")
     thread_count = max(int(os.cpu_count()/4),1)
     with ThreadPoolExecutor(max_workers=thread_count) as executor:

@@ -283,28 +283,12 @@ const saveToGallery = async () => {
 // Generates photo objects with low quality thumbnails
 const handleFileUpload = async() => {
   try {
-    isLoading.value = true;
     alertMessage.value = "Uploading photos...";
-    const formData = new FormData();
-    for (const file of newlyUploadedFiles.value) {
-      formData.append('photos', file, `image.jpg`)
-    }
-    const response = await axios.post(`${store.apiUrl}/scale-images`, formData, {});
-    const imageArray = response.data;
-    const blobArray = [];
-    imageArray.forEach((base64Image, index) => {
-      const binary = atob(base64Image);
-      const array = [];
-      for (let i = 0; i < binary.length; i++) {
-        array.push(binary.charCodeAt(i));
-      }
-      blobArray[index] = new Blob([new Uint8Array(array)], {type: 'image/png'});
-    });
-    blobArray.forEach((lowResBlob, index) => {
-      const hiResBlob = new Blob([newlyUploadedFiles.value[index]], {type: 'image/jpeg'});
-      uploadedPhotos.value.push(new Photo(hiResBlob, lowResBlob));
-    })
-    selectedPhotos.value.push(true);
+    const newPhotos = newlyUploadedFiles.value.map(file => new Photo(file));
+    uploadedPhotos.value.push(...newPhotos);
+    selectedPhotos.value.push(...newPhotos.map(() => true));
+    await Promise.all(newPhotos.map(p => p.done));
+    isLoading.value = true;
   } catch (error) {
     errorMessage.value = "Internal server error.";
   } finally {
@@ -492,7 +476,7 @@ function editPhoto(index){
               <v-row>
                 <v-col  v-for="(photo, index) in uploadedPhotos" :key="index" md="2">
                   <v-card :class="{'deselected': !selectedPhotos[index]}" :disabled="isLoading">
-                    <v-img :src="photo._proxyURL">
+                    <v-img :src="photo._proxyURL" aspect-ratio="1" cover>
                       <v-btn icon density="compact" class="reset-btn ma-2" @click="deletePhoto(index)" color="error">
                         <v-icon small>mdi-close</v-icon>
                       </v-btn>
