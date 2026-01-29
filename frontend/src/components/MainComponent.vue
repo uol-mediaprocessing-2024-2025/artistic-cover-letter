@@ -372,20 +372,20 @@ const keyDown = async (event) => {
 async function updateShadows() {
   let update = false
   if (themeState.isDark) {
-    if (dropshadowcolorauto){
+    if (dropshadowcolorauto.value){
       dropshadowcolor.value = "#000000"
       update = true
     }
-    if (shadowcolorauto){
+    if (shadowcolorauto.value){
       shadowcolor.value = "#FFFFFF"
       update = true
     }
   } else {
-    if (dropshadowcolorauto){
+    if (dropshadowcolorauto.value){
       shadowcolor.value = "#000000"
       update = true
     }
-    if (shadowcolorauto){
+    if (shadowcolorauto.value){
       dropshadowcolor.value = "#FFFFFF"
       update = true
     }
