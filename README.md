@@ -1,6 +1,48 @@
 # Artistic Cover Letter
 
-This software generates artistic combinations of letters and images.
+<img src="readme_img/demo1_dark.png" width="100%"/>
+
+
+This software lets users easily generate combinations of letters and images.
+
+## Text & Font options
+
+<img src="readme_img/demo2_dark.png" width="60%"/>
+
+## Photos and generated color schemes
+
+<img src="readme_img/demo3_dark.png" width="60%"/>
+
+## Effects & Export
+
+<img src="readme_img/demo4_dark.png" width="60%"/>
+
+# Relevant concepts
+
+<img src="readme_img/demo5.png" width="40%"/> <img src="readme_img/demo6.png" width="40%"/>
+
+Color extraction using an algorithm by [Kamal Joshi](https://hackernoon.com/extract-prominent-colors-from-an-image-using-machine-learning-vy2w33rx).
+
+
+Including Oklab color space to improve perceptual uniformity, with primitive clustering to find photos with similar color schemes.
+
+Previous attempts included hue matching with histogram analysis, and random color scheme generation using Oklab inspired by [Acerola](https://youtu.be/fv-wlo8yVhk?si=vvBKAdjNrrfGk45I&t=1673).
+
+<img src="readme_img/demo7_dark.png" width="50%"/>
+
+<img src="readme_img/demo8.png" width="80%"/>
+
+Layer system using a cached base layer to efficiently generate effects, including DPI-based settings to adjust rendering resolution.
+
+<img src="readme_img/demo9_dark.png" width="60%"/>
+
+Moondream AI model for Text suggestions.
+
+![](readme_img/output_video_dark.avif)
+
+Proof of concept animation rendering.
+
+# Setup
 
 This project utilizes the moondream AI model, which is licensed under the Apache 2.0 license. See the LICENSE file for more information.
 
@@ -11,8 +53,6 @@ This project utilizes the moondream AI model, which is licensed under the Apache
 - **Conda** (for environment management) - [Install here](https://docs.conda.io/projects/conda/en/latest/user-guide/install/)
 
 ---
-
-## Setup Instructions
 
 ### 1. Backend Setup
 
@@ -55,7 +95,7 @@ This project utilizes the moondream AI model, which is licensed under the Apache
    npm install
    ```
 
-3. **Start the development server:**
+3. **Execute ```run.bat``` or start the development server manually:**
    ```sh
    npm run dev
    ```
