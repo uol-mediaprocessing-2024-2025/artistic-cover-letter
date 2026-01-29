@@ -32,38 +32,38 @@ def generate_video():
     frames = []
 
     #previous frames
-    layer2 = generate_letter_layer("Video", resolution, images)
+    layer2 = generate_letter_layer("Video", "Rubik", resolution, images)
     layer0 = calcBackgroundBleed(layer2, backgroundBleedRadius[0], backgroundBleedIntensity[0], resolution)
-    layer1 = calcDropshadow(layer2, dropshadowRadius[0], dropshadowIntensity[0], "#000000", resolution)
-    layer3 = calcInnerShadow(layer2, innershadowRadius[0], innerShadowIntensity[0], "#FFFFFF", resolution)
+    layer1 = calcDropshadow(layer2, dropshadowRadius[0], dropshadowIntensity[0], "#FFFFFF", resolution)
+    layer3 = calcInnerShadow(layer2, innershadowRadius[0], innerShadowIntensity[0], "#000000", resolution)
     full_frame = alpha_composite(layer0, layer1)
     full_frame2 = alpha_composite(full_frame, layer2)
     full_frame3 = alpha_composite(full_frame2, layer3)
-    full_frame4 = alpha_composite(Image.new('RGBA', layer2.size, (255, 255, 255, 255)), full_frame3)
-    for index in range(0, 120):
+    full_frame4 = alpha_composite(Image.new('RGBA', layer2.size, (13, 17, 23, 255)), full_frame3)
+    for index in range(0, 5):
         frames.append(full_frame4)
 
     # animation
     for index in range(0, 120):
-        layer2 = generate_letter_layer("Video", resolution, images)
+        layer2 = generate_letter_layer("Video", "Rubik", resolution, images)
         layer0 = calcBackgroundBleed(layer2, backgroundBleedRadius[index], backgroundBleedIntensity[index], resolution)
-        layer1 = calcDropshadow(layer2, dropshadowRadius[index], dropshadowIntensity[index], "#000000", resolution)
-        layer3 = calcInnerShadow(layer2, innershadowRadius[index], innerShadowIntensity[index], "#FFFFFF", resolution)
+        layer1 = calcDropshadow(layer2, dropshadowRadius[index], dropshadowIntensity[index], "#FFFFFF", resolution)
+        layer3 = calcInnerShadow(layer2, innershadowRadius[index], innerShadowIntensity[index], "#000000", resolution)
         full_frame = alpha_composite(layer0, layer1)
         full_frame2 = alpha_composite(full_frame, layer2)
         full_frame3 = alpha_composite(full_frame2, layer3)
-        full_frame4 = alpha_composite(Image.new('RGBA', layer2.size, (255, 255, 255, 255)), full_frame3)
+        full_frame4 = alpha_composite(Image.new('RGBA', layer2.size, (13, 17, 23, 255)), full_frame3)
         frames.append(full_frame4)
 
     #previous frames
-    layer2 = generate_letter_layer("Video", resolution, images)
+    layer2 = generate_letter_layer("Video", "Rubik", resolution, images)
     layer0 = calcBackgroundBleed(layer2, backgroundBleedRadius[119], backgroundBleedIntensity[119], resolution)
-    layer1 = calcDropshadow(layer2, dropshadowRadius[119], dropshadowIntensity[119], "#000000", resolution)
-    layer3 = calcInnerShadow(layer2, innershadowRadius[119], innerShadowIntensity[119], "#FFFFFF", resolution)
+    layer1 = calcDropshadow(layer2, dropshadowRadius[119], dropshadowIntensity[119], "#FFFFFF", resolution)
+    layer3 = calcInnerShadow(layer2, innershadowRadius[119], innerShadowIntensity[119], "#000000", resolution)
     full_frame = alpha_composite(layer0, layer1)
     full_frame2 = alpha_composite(full_frame, layer2)
     full_frame3 = alpha_composite(full_frame2, layer3)
-    full_frame4 = alpha_composite(Image.new('RGBA', layer2.size, (255, 255, 255, 255)), full_frame3)
+    full_frame4 = alpha_composite(Image.new('RGBA', layer2.size, (13, 17, 23, 255)), full_frame3)
     for index in range(0, 120):
         frames.append(full_frame4)
 

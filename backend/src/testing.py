@@ -1,14 +1,19 @@
 from PIL import Image
 import os
+import color_schemes
+import image_processing
+import dead_code
 # Needed for some plots, for some reason
 #mpl.use('TkAgg')
 
 def main():
 
-    images = load_images_from_folder("C:/Users/Simon/Downloads/examplePhotos sorted/")
+    dead_code.generate_video()
+    #images = load_images_from_folder("C:/Users/Simon/Pictures/Ukanc")
 
-    image = images[0]
-    print("Hello world")
+    #image = image_processing.resizeImageLongest(images[11], 256)
+
+    #color_schemes.plot_colors(color_schemes.get_image_colors(image))
 
 # Loads images from folder and returns image array
 # Very useful for prototyping and testing

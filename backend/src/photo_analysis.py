@@ -49,11 +49,11 @@ def getSubjects(images):
     querying_workers = int(available_memory / 2)
 
     print("Encoding... (up to " + str(encoding_workers) + " workers)")
-    with ThreadPoolExecutor(max_workers=10) as executor:
+    with ThreadPoolExecutor(max_workers=encoding_workers) as executor:
         results = list(executor.map(encode_image, images))
     encoded_images.extend(results)
     print("Querying... (up to " + str(querying_workers) + " workers)")
-    with ThreadPoolExecutor(max_workers=1) as executor:
+    with ThreadPoolExecutor(max_workers=querying_workers) as executor:
         answers = list(executor.map(query, encoded_images))
     print("Done")
     print("Raw results: " + str(answers))
