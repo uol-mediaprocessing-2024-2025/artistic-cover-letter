@@ -3,7 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 from PIL.Image import alpha_composite
 from fastapi import FastAPI, UploadFile, File, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.responses import Response, JSONResponse
 from backend.src.color_schemes import cluster_photos, get_image_colors
 from backend.src.photo_analysis import getSubjects
 from backend.src.image_processing import resizeImageShortest
@@ -61,16 +61,6 @@ async def submit_text(
         text: str = Form(...),
         font: str = Form(...),
         resolution: int = Form(...),
-        dropshadow_radius: int = Form(...),
-        dropshadow_intensity: int = Form(...),
-        dropshadow_color: str = Form(...),
-        bleed_radius: int = Form(...),
-        bleed_intensity: int = Form(...),
-        shadow_radius: int = Form(...),
-        shadow_intensity: int = Form(...),
-        shadow_color: str = Form(...),
-        outline_width: int = Form(...),
-        outline_color: str = Form(...),
         photos: list[UploadFile] = File(...),
 ):
     images = []
@@ -81,21 +71,7 @@ async def submit_text(
 
     letter_layer = generate_letter_layer(text, font, resolution, images)
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = [
-            executor.submit(calcBackgroundBleed, letter_layer, bleed_radius, bleed_intensity, resolution),
-            executor.submit(calcDropshadow, letter_layer, dropshadow_radius, dropshadow_intensity, dropshadow_color, resolution),
-            executor.submit(calcInnerShadow, letter_layer, shadow_radius, shadow_intensity, shadow_color, resolution),
-            executor.submit(calcOutline, letter_layer, outline_width, outline_color, resolution)
-        ]
-    layer0, layer1, layer3, layer4 = [f.result() for f in futures]
-
-    full = fullComposite(layer0, layer1, letter_layer, layer3, layer4)
-
-    images_to_encode = [letter_layer, full]
-    with ThreadPoolExecutor() as executor:
-        encoded_images = list(executor.map(encodeImage, images_to_encode))
-    return JSONResponse(content=encoded_images)
+    return Response(content=encodeImage(letter_layer), media_type="image/png")
 
 # Applies effects on an existing text layer
 @app.post("/apply-effects")
@@ -127,18 +103,14 @@ async def apply_effects(
 
     full = fullComposite(layer0, layer1, letter_layer, layer3, layer4)
 
-    images_to_encode = [letter_layer, full]
-    with ThreadPoolExecutor() as executor:
-        encoded_images = list(executor.map(encodeImage, images_to_encode))
-    return JSONResponse(content=encoded_images)
+    return Response(content=encodeImage(full), media_type="image/png")
 
 # Encodes all images to send them back to the frontend
 def encodeImage(image):
     image_io = io.BytesIO()
-    # compress_level=1 offered a good balance between compression efficiency and encoding speed
-    image.save(image_io, format="PNG", compress_level=1)
+    image.save(image_io, format="PNG", compress_level=0)
     image_io.seek(0)
-    return base64.b64encode(image_io.getvalue()).decode('utf-8')
+    return image_io.getvalue()
 
 # Composites all images
 def fullComposite(layer0, layer1, layer2, layer3, layer4):

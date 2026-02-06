@@ -6,6 +6,7 @@ import {themeState} from "@/views/theme.js"; // Import shared store to manage gl
 import EditorComponent from "@/components/EditorComponent.vue";
 import {green, red} from "vuetify/util/colors";
 import {Photo} from "@/photo.js";
+import app from "@/App.vue";
 
 // Reactive references
 const isLoading = ref(false);  // Boolean to show a loading spinner while the image is being processed
@@ -144,11 +145,11 @@ const submitText = async () => {
     formData.append('text', text.valueOf().value);
     formData.append('font', selectedFont.valueOf().value);
     formData.append('resolution', resolution.valueOf().value);
+    formData.append('bleed_radius', bleedradius.valueOf().value);
+    formData.append('bleed_intensity', bleedintensity.valueOf().value);
     formData.append('dropshadow_radius', dropshadowradius.valueOf().value);
     formData.append('dropshadow_intensity', dropshadowintensity.valueOf().value);
     formData.append('dropshadow_color', dropshadowcolor.valueOf().value);
-    formData.append('bleed_radius', bleedradius.valueOf().value);
-    formData.append('bleed_intensity', bleedintensity.valueOf().value);
     formData.append('shadow_radius', shadowradius.valueOf().value);
     formData.append('shadow_intensity', shadowintensity.valueOf().value);
     formData.append('shadow_color', shadowcolor.valueOf().value);
@@ -167,9 +168,11 @@ const submitText = async () => {
         formData.append('photos', blob, `image.jpg`)
       }
     }
-    const response = await axios.post(`${store.apiUrl}/submit-text`, formData, {});
-  const imageArray = response.data;
-  updateImages(imageArray);
+    const response = await axios.post(`${store.apiUrl}/submit-text`, formData, {
+      responseType: 'blob' // Expect binary data (blob)
+    });
+    letterLayer.value = URL.createObjectURL(response.data);
+    await applyEffects();
   } catch (error) {
     errorMessage.value = "Internal server error.";
     console.error('Failure:', error);
@@ -177,22 +180,6 @@ const submitText = async () => {
     isLoading.value = false;
     alertMessage.value = null;
   }
-}
-
-// Updates all images, called after receiving processed images from backend
-const updateImages = (imageArray) => {
-  const blobArray = [];
-  imageArray.forEach((base64Image, index) => {
-      const binary = atob(base64Image);
-      const array = [];
-      for (let i = 0; i < binary.length; i++) {
-        array.push(binary.charCodeAt(i));
-      }
-      const blob = new Blob([new Uint8Array(array)], { type: 'image/png' });
-      blobArray[index] = URL.createObjectURL(blob);
-    });
-  letterLayer.value = blobArray[0];
-  fullImage.value = blobArray[1];
 }
 
 // Applies effects using text layer and fx parameters only
@@ -220,9 +207,10 @@ const applyEffects = async () => {
     formData.append('resolution', resolution.valueOf().value);
     // Convert Images to blobs
     formData.append('letter_layer_blob', await fetch(letterLayer.value).then(res => res.blob()));
-    const response = await axios.post(`${store.apiUrl}/apply-effects`, formData, {});
-    const imageArray = response.data;
-    updateImages(imageArray);
+    const response = await axios.post(`${store.apiUrl}/apply-effects`, formData, {
+      responseType: 'blob' // Expect binary data (blob)
+    });
+    fullImage.value = URL.createObjectURL(response.data);
   } catch (error) {
     errorMessage.value = "Internal server error.";
     console.error("Failure:", error);
